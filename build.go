@@ -16,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/moby/sys/reexec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 var BuildFlag struct {
@@ -202,8 +202,8 @@ func MountOverlay() {
 	SwitchTo("MountOverlayStage2", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
 }
 
-func BuildMain(ctx *cli.Context) error {
-	BuildFlag.Args = ctx.Args().Slice()
+func BuildMain(cmd *cobra.Command, args []string) error {
+	BuildFlag.Args = args
 	reexec.Register("MountOverlay", MountOverlay)
 	reexec.Register("MountOverlayStage2", MountOverlayStage2)
 	if !reexec.Init() {
@@ -251,73 +251,29 @@ func BuildMain(ctx *cli.Context) error {
 	return nil
 }
 
-func CreateBuildCommand() *cli.Command {
+func CreateBuildCommand() *cobra.Command {
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	return &cli.Command{
-		Name:  "build",
-		Usage: "构建或进入构建环境",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "rootfs",
-				TakesFile:   true,
-				Value:       "/run/host/rootfs",
-				Destination: &BuildFlag.RootFS,
-				Usage:       "主机根目录路径",
-			},
-			&cli.StringFlag{
-				Name:        "tmp-rootfs",
-				TakesFile:   true,
-				Value:       "/tmp/rootfs",
-				Destination: &BuildFlag.TmpRootFS,
-				Usage:       "临时根目录路径",
-			},
-			&cli.StringFlag{
-				Name:        "cwd",
-				TakesFile:   true,
-				Destination: &BuildFlag.CWD,
-				Value:       cwd,
-				Hidden:      true,
-			},
-			&cli.BoolFlag{
-				Name:        "ptrace",
-				Destination: &BuildFlag.Ptrace,
-				Value:       false,
-				Usage:       "修正系统调用(chown)",
-			},
-			&cli.StringFlag{
-				Name:        "encoded-args",
-				Destination: &BuildFlag.EncodedArgs,
-				Hidden:      true,
-			},
-			&cli.StringFlag{
-				Name:        "fuse-overlayfs",
-				TakesFile:   true,
-				Value:       "fuse-overlayfs",
-				Destination: &GlobalFlag.FuseOverlayFS,
-				Usage:       "fuse-overlayfs命令路径",
-			},
-			&cli.StringFlag{
-				Name:        "fuse-overlayfs-args",
-				Destination: &GlobalFlag.FuseOverlayFSArgs,
-				Usage:       "fuse-overlayfs命令额外参数",
-			},
-			&cli.StringFlag{
-				Name:        "self",
-				Value:       os.Args[0],
-				Destination: &BuildFlag.Self,
-				Hidden:      true,
-			},
-			&cli.BoolFlag{
-				Name:        "strict",
-				Value:       os.Getenv("LINGLONG_APPID") == "",
-				Destination: &BuildFlag.Strict,
-				Usage:       "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）",
-			},
-		},
-		Action: BuildMain,
+	cmd := &cobra.Command{
+		Use:   "build",
+		Short: "构建或进入构建环境",
+		RunE:  BuildMain,
 	}
+	cmd.Flags().StringVar(&BuildFlag.RootFS, "rootfs", "/run/host/rootfs", "主机根目录路径")
+	cmd.Flags().StringVar(&BuildFlag.TmpRootFS, "tmp-rootfs", "/tmp/rootfs", "临时根目录路径")
+	cmd.Flags().StringVar(&BuildFlag.CWD, "cwd", cwd, "当前工作目录路径")
+	cmd.Flags().BoolVar(&BuildFlag.Ptrace, "ptrace", false, "修正系统调用(chown)")
+	cmd.Flags().StringVar(&BuildFlag.EncodedArgs, "encoded-args", "", "编码后的参数")
+	cmd.Flags().StringVar(&BuildFlag.Self, "self", os.Args[0], "ll-killer路径")
+	cmd.Flags().BoolVarP(&BuildFlag.Strict, "strict", "x", os.Getenv("LINGLONG_APPID") == "", "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）")
+	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
+
+	cmd.Flags().MarkHidden("encoded-args")
+	cmd.Flags().MarkHidden("self")
+	cmd.Flags().MarkHidden("cwd")
+	return cmd
 }

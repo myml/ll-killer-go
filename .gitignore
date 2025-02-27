@@ -9,3 +9,4 @@ package.info
 *.log
 /ll-killer
 tests
+fuse-overlayfs

@@ -7,10 +7,9 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -61,15 +60,15 @@ entrypoint.sh:          玲珑应用入口点
 env.sh:                 辅助脚本环境配置脚本
 ldd-check.sh:           检查容器内的缺失库，用于deb包未完整声明依赖的情况。
 ldd-search.sh:          搜索缺失库所在的deb包名称，需要在ll-killer apt环境中使用。
-                        用法：ldd-search.sh <包括输入库文件名列表的文件> <找到的deb包> <失败的文件列表>
+						用法：ldd-search.sh <包括输入库文件名列表的文件> <找到的deb包> <失败的文件列表>
 relink.sh               修复容器内的符号链接，玲珑不支持目录的相对符号链接。
-                        用法：relink.sh <符号链接>
+						用法：relink.sh <符号链接>
 setup-desktop.sh:       修复desktop文件中的Icon和Exec指令。
-                        用法：setup-desktop.sh: <desktop文件>
+						用法：setup-desktop.sh: <desktop文件>
 setup-filesystem.sh:    从构建环境中复制文件到$PREFIX。
 setup-icon.sh:          将图标文件按尺寸放置到正确的位置，支持ico,png,jpeg/jpg,gif,bmp和svg文件。
-                        用法：setup-icon.sh: <图标文件>
-                        * 由于DDE的bug，仅搜索svg和png文件，因此所有类型的图片文件都将重命名为svg或png文件，即便它不是这两个格式。
+						用法：setup-icon.sh: <图标文件>
+						* 由于DDE的bug，仅搜索svg和png文件，因此所有类型的图片文件都将重命名为svg或png文件，即便它不是这两个格式。
 setup.sh:               复制文件和创建入口点，并执行以上所有修复脚本。
 
 `
@@ -82,44 +81,27 @@ func main() {
 	if err != nil {
 		Debug("SetupEnvVar:", err)
 	}
+	cobra.EnableCommandSorting = false
 	// log.SetFlags(0)
-	app := cli.App{
-		Name:        "ll-killer",
-		Usage:       Usage,
-		Description: BuildHelpMessage(MainCommandHelp),
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "debug",
-				Usage:       "显示调试信息",
-				Value:       GlobalFlag.Debug,
-				Destination: &GlobalFlag.Debug,
-				Action: func(ctx *cli.Context, b bool) error {
-					GlobalFlag.Debug = b
-					if b {
-						os.Setenv(kKillerDebug, fmt.Sprint(b))
-					} else {
-						os.Setenv(kKillerDebug, "")
-					}
-					return nil
-				},
-			},
-		},
-		Commands: []*cli.Command{
-			CreateAPTCommand(),
-			CreateCreateCommand(),
-			CreateBuildCommand(),
-			CreateExecCommand(),
-			CreateCleanCommand(),
-			CreatePtraceCommand(),
-			CreateRunCommand(),
-			CreateCommitCommand(),
-			CreateScriptCommand(),
-		},
-		ExitErrHandler: func(cCtx *cli.Context, err error) {
-			ExitWith(err)
-		},
+	app := cobra.Command{
+		Use:   "ll-killer",
+		Short: Usage,
+		Long:  BuildHelpMessage(MainCommandHelp),
 	}
-	if err := app.Run(os.Args); err != nil {
+	app.Flags().SortFlags = false
+	app.InheritedFlags().SortFlags = false
+	app.LocalFlags().SortFlags = false
+	app.Flags().BoolVar(&GlobalFlag.Debug, "debug", GlobalFlag.Debug, "显示调试信息")
+	app.AddCommand(CreateAPTCommand(),
+		CreateBuildCommand(),
+		CreateExecCommand(),
+		CreateRunCommand(),
+		CreateCommitCommand(),
+		CreateCleanCommand(),
+		CreateBuildAuxCommand(),
+		CreatePtraceCommand(),
+		CreateScriptCommand())
+	if err := app.Execute(); err != nil {
 		ExitWith(err)
 	}
 

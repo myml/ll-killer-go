@@ -6,9 +6,7 @@
  */
 package main
 
-import (
-	"github.com/urfave/cli/v2"
-)
+import "github.com/spf13/cobra"
 
 var RunFlag struct {
 	Self  string
@@ -16,18 +14,19 @@ var RunFlag struct {
 	Args  []string
 }
 
-func RunMain(ctx *cli.Context) error {
-	args := []string{"ll-builder", "run"}
-	args = append(args, ctx.Args().Slice()...)
+func RunMain(cmd *cobra.Command, args []string) error {
+	args = append([]string{"ll-builder", "run"}, args...)
 	Exec(args...)
 	return nil
 }
-func CreateRunCommand() *cli.Command {
-	return &cli.Command{
-		Name:        "run",
-		Usage:       "启动容器",
-		Description: "此命令执行ll-builder run，用于提供一致性体验。",
-		Flags:       []cli.Flag{},
-		Action:      RunMain,
+
+func CreateRunCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "run",
+		Short: "启动容器",
+		Long:  "此命令执行ll-builder run，用于提供一致性体验。",
+		RunE:  RunMain,
 	}
+
+	return cmd
 }

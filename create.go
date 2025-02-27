@@ -17,7 +17,7 @@ import (
 	"strings"
 
 	"github.com/go-yaml/yaml"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 type Config struct {
@@ -37,10 +37,9 @@ type Config struct {
 
 var ConfigData Config
 var CreateFlag struct {
-	NoBuild   bool
-	Metadata  string
-	Extend    string
-	FieldMask map[string]bool
+	NoBuild  bool
+	Metadata string
+	Extend   string
 }
 
 func NormalizeVersion(version string) string {
@@ -54,27 +53,28 @@ func NormalizeVersion(version string) string {
 	}
 	return strings.Join(chunks, ".")
 }
-func SetupPackageMetadata(cmd *cli.Command) error {
+func SetupPackageMetadata(cmd *cobra.Command) error {
 	metadata, err := ParsePackageMetadataFromFile(CreateFlag.Metadata)
 	if err != nil {
 		return err
 	}
-	if !CreateFlag.FieldMask["description"] && metadata["description"] != "" {
+
+	if !cmd.Flags().Changed("description") && metadata["description"] != "" {
 		ConfigData.Package.Description = metadata["description"]
 	}
-	if !CreateFlag.FieldMask["version"] && metadata["version"] != "" {
+	if !cmd.Flags().Changed("version") && metadata["version"] != "" {
 		ConfigData.Package.Version = NormalizeVersion(metadata["version"])
 	}
-	if !CreateFlag.FieldMask["id"] && metadata["package"] != "" {
+	if !cmd.Flags().Changed("id") && metadata["package"] != "" {
 		ConfigData.Package.ID = metadata["package"]
 	}
-	if !CreateFlag.FieldMask["name"] && metadata["package"] != "" {
+	if !cmd.Flags().Changed("name") && metadata["package"] != "" {
 		ConfigData.Package.Name = metadata["package"]
 	}
-	if !CreateFlag.FieldMask["base"] && metadata["base"] != "" {
+	if !cmd.Flags().Changed("base") && metadata["base"] != "" {
 		ConfigData.Package.Name = metadata["runtime"]
 	}
-	if !CreateFlag.FieldMask["runtime"] && metadata["runtime"] != "" {
+	if !cmd.Flags().Changed("runtime") && metadata["runtime"] != "" {
 		ConfigData.Package.Name = metadata["runtime"]
 	}
 	if metadata["apt-sources"] != "" {
@@ -171,13 +171,13 @@ func ParsePackageMetadata(stream io.Reader) (map[string]string, error) {
 	return metadata, nil
 }
 
-func CreateMain(ctx *cli.Context) error {
+func CreateMain(cmd *cobra.Command, args []string) error {
 	err := embedFilesToDisk(".")
 	if err != nil {
 		return err
 	}
 
-	SetupPackageMetadata(ctx.Command)
+	SetupPackageMetadata(cmd)
 
 	fs, err := os.Create(kLinglongYaml)
 	if err != nil {
@@ -198,104 +198,25 @@ func CreateMain(ctx *cli.Context) error {
 	}
 	return nil
 }
-func SetMask[T any](name string) func(ctx *cli.Context, v T) error {
-	return func(ctx *cli.Context, v T) error {
-		CreateFlag.FieldMask[name] = true
-		return nil
+func CreateCreateCommand() *cobra.Command {
+
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "创建模板项目",
+		RunE:  CreateMain,
 	}
-}
-func CreateCreateCommand() *cli.Command {
-	CreateFlag.FieldMask = make(map[string]bool)
-	return &cli.Command{
-		Name:  "create",
-		Usage: "创建模板项目",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:        "spec",
-				Usage:       "玲珑yaml版本",
-				Value:       "1",
-				Destination: &ConfigData.Version,
-				Action:      SetMask[string]("spec"),
-			},
-			&cli.StringFlag{
-				Name:        "id",
-				Usage:       "包名",
-				Value:       "app",
-				Destination: &ConfigData.Package.ID,
-				Action:      SetMask[string]("id"),
-			},
-			&cli.StringFlag{
-				Name:        "name",
-				Usage:       "显示名称",
-				Value:       "app",
-				Destination: &ConfigData.Package.Name,
-				Action:      SetMask[string]("name"),
-			},
-			&cli.StringFlag{
-				Name:        "version",
-				Usage:       "版本号",
-				Value:       "0.0.0.1",
-				Destination: &ConfigData.Package.Version,
-				Action:      SetMask[string]("version"),
-			},
-			&cli.StringFlag{
-				Name:        "kind",
-				Usage:       "应用类型：app|runtime",
-				Value:       "app",
-				Destination: &ConfigData.Package.Kind,
-				Action:      SetMask[string]("kind"),
-			},
-			&cli.StringFlag{
-				Name:        "description",
-				Usage:       "应用说明",
-				Value:       "",
-				Destination: &ConfigData.Package.Description,
-				Action:      SetMask[string]("description"),
-			},
-			&cli.MultiStringFlag{
-				Target: &cli.StringSliceFlag{
-					Name:  "command",
-					Usage: "启动命令",
-				},
-				Value:       []string{"entrypoint.sh"},
-				Destination: &ConfigData.Command,
-			},
-			&cli.StringFlag{
-				Name:        "base",
-				Usage:       "Base镜像",
-				Value:       "org.deepin.base/23.1.0",
-				Destination: &ConfigData.Base,
-				Action:      SetMask[string]("base"),
-			},
-			&cli.StringFlag{
-				Name:        "runtime",
-				Usage:       "Runtime镜像",
-				Value:       "",
-				Destination: &ConfigData.Runtime,
-				Action:      SetMask[string]("runtime"),
-			},
-			&cli.StringFlag{
-				Name:        "build",
-				Usage:       "构建命令",
-				Value:       "build-aux/setup.sh",
-				Destination: &ConfigData.Build,
-				Action:      SetMask[string]("build"),
-			},
-			&cli.BoolFlag{
-				Name:        "no-build",
-				Usage:       "不自动初始化项目",
-				Value:       false,
-				Destination: &CreateFlag.NoBuild,
-				Action:      SetMask[bool]("no-build"),
-			},
-			&cli.StringFlag{
-				Name:        "from",
-				Usage:       "从APT Package元数据创建(支持apt show)",
-				Destination: &CreateFlag.Metadata,
-				TakesFile:   true,
-				Action:      SetMask[string]("from"),
-			},
-		},
-		Action: CreateMain,
-	}
+	cmd.Flags().StringVar(&ConfigData.Version, "spec", "1", "玲珑yaml版本")
+	cmd.Flags().StringVar(&ConfigData.Package.ID, "id", "app", "包名")
+	cmd.Flags().StringVar(&ConfigData.Package.Name, "name", "app", "显示名称")
+	cmd.Flags().StringVar(&ConfigData.Package.Version, "version", "0.0.0.1", "版本号")
+	cmd.Flags().StringVar(&ConfigData.Package.Kind, "kind", "app", "应用类型：app|runtime")
+	cmd.Flags().StringVar(&ConfigData.Package.Description, "description", "", "应用说明")
+	cmd.Flags().StringSliceVar(&ConfigData.Command, "command", []string{"entrypoint.sh"}, "启动命令")
+	cmd.Flags().StringVar(&ConfigData.Base, "base", "org.deepin.base/23.1.0", "Base镜像")
+	cmd.Flags().StringVar(&ConfigData.Runtime, "runtime", "", "Runtime镜像")
+	cmd.Flags().StringVar(&ConfigData.Build, "build", "build-aux/setup.sh", "构建命令")
+	cmd.Flags().BoolVar(&CreateFlag.NoBuild, "no-build", false, "不自动初始化项目")
+	cmd.Flags().StringVar(&CreateFlag.Metadata, "from", "", "从APT Package元数据创建(支持apt show)")
+
+	return cmd
 }

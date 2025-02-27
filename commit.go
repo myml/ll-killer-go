@@ -6,9 +6,7 @@
  */
 package main
 
-import (
-	"github.com/urfave/cli/v2"
-)
+import "github.com/spf13/cobra"
 
 var CommitFlag struct {
 	Self  string
@@ -16,18 +14,19 @@ var CommitFlag struct {
 	Args  []string
 }
 
-func CommitMain(ctx *cli.Context) error {
-	args := []string{"ll-builder", "build"}
-	args = append(args, ctx.Args().Slice()...)
+func CommitMain(cmd *cobra.Command, args []string) error {
+	args = append([]string{"ll-builder", "build"}, args...)
 	Exec(args...)
 	return nil
 }
-func CreateCommitCommand() *cli.Command {
-	return &cli.Command{
-		Name:        "commit",
-		Usage:       "提交构建内容",
-		Description: "此命令执行ll-builder build，用于提供一致性体验。",
-		Flags:       []cli.Flag{},
-		Action:      CommitMain,
+func CreateCommitCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "commit",
+		Short: "提交构建内容",
+		Long:  "此命令执行ll-builder build，用于提供一致性体验。",
+		RunE:  CommitMain,
 	}
+
+	// 由于原命令没有标志，这里不添加 Flags
+	return cmd
 }

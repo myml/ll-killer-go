@@ -7,7 +7,7 @@
 package main
 
 import (
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 var ScriptFlag struct {
@@ -22,17 +22,18 @@ const ScriptCommandHelp = `
 KILLER_EXEC=<program> <构建脚本> [参数...]
 `
 
-func ScriptMain(ctx *cli.Context) error {
+func ScriptMain(cmd *cobra.Command, args []string) error {
 
-	return ExecRaw(ctx.Args().Slice()...)
+	return ExecRaw(args...)
 }
 
-func CreateScriptCommand() *cli.Command {
-	return &cli.Command{
-		Name:        "script",
-		Description: BuildHelpMessage(ScriptCommandHelp),
-		Usage:       "执行自定义构建流程",
-		Flags:       []cli.Flag{},
-		Action:      ScriptMain,
+func CreateScriptCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "script",
+		Short: "执行自定义构建流程",
+		Long:  BuildHelpMessage(ScriptCommandHelp),
+		RunE:  ScriptMain,
 	}
+
+	return cmd
 }

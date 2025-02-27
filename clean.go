@@ -7,7 +7,7 @@
 package main
 
 import (
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 var CleanFlag struct {
@@ -15,7 +15,7 @@ var CleanFlag struct {
 	APT        bool
 }
 
-func CleanMain(ctx *cli.Context) error {
+func CleanMain(cmd *cobra.Command, args []string) error {
 	if CleanFlag.FileSystem {
 		err := RunCommand("rm", "-rf", FileSystemDir)
 		if err != nil {
@@ -32,24 +32,14 @@ func CleanMain(ctx *cli.Context) error {
 	return nil
 }
 
-func CreateCleanCommand() *cli.Command {
-	return &cli.Command{
-		Name:  "clean",
-		Usage: "清除构建内容",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{
-				Name:        "filesystem",
-				Usage:       "清除容器文件系统",
-				Value:       true,
-				Destination: &CleanFlag.FileSystem,
-			},
-			&cli.BoolFlag{
-				Name:        "apt",
-				Usage:       "清除APT缓存",
-				Value:       false,
-				Destination: &CleanFlag.APT,
-			},
-		},
-		Action: CleanMain,
+func CreateCleanCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "clean",
+		Short: "清除构建内容",
+		RunE:  CleanMain,
 	}
+
+	cmd.Flags().BoolVar(&CleanFlag.FileSystem, "filesystem", true, "清除容器文件系统")
+	cmd.Flags().BoolVar(&CleanFlag.APT, "apt", false, "清除APT缓存")
+	return cmd
 }

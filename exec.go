@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/moby/sys/reexec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 var ExecFlag struct {
@@ -179,9 +179,9 @@ func StartMountFileSystem() error {
 		NoDefaultArgs: true,
 	})
 }
-func ExecMain(ctx *cli.Context) error {
-	Debug("ExecMain", os.Args)
-	ExecFlag.Args = ctx.Args().Slice()
+func ExecMain(cmd *cobra.Command, args []string) error {
+	Debug("ExecMain", args)
+	ExecFlag.Args = args
 	reexec.Register("MountFileSystem", MountFileSystem)
 	reexec.Register("ExecSystem", ExecSystem)
 	if !reexec.Init() {
@@ -208,75 +208,23 @@ func ExecMain(ctx *cli.Context) error {
 	return nil
 }
 
-type SeparatorSpec struct {
-	sep        string
-	disabled   bool
-	customized bool
-}
-
-func CreateExecCommand() *cli.Command {
-
-	return &cli.Command{
-		Name:        "exec",
-		Description: BuildHelpMessage(ExecCommandHelp),
-		Flags: []cli.Flag{
-			&cli.MultiStringFlag{
-				Target: &cli.StringSliceFlag{
-					Name:  "mount",
-					Usage: "source:target:[flags:[fstype:[option]]]",
-				},
-				Destination: &ExecFlag.Mounts,
-			},
-			&cli.IntFlag{
-				Name:        "uid",
-				Usage:       "用户ID",
-				Value:       os.Getuid(),
-				Destination: &ExecFlag.UID,
-			},
-			&cli.IntFlag{
-				Name:        "gid",
-				Usage:       "用户组ID",
-				Value:       os.Getuid(),
-				Destination: &ExecFlag.GID,
-			},
-			&cli.StringFlag{
-				Name:        "socket",
-				Usage:       "可重入终端通信套接字,指定相同的套接字将重用已启动的环境",
-				TakesFile:   true,
-				Destination: &ExecFlag.Socket,
-			},
-			&cli.StringFlag{
-				Name:        "rootfs",
-				Usage:       "合并的根目录位置",
-				TakesFile:   true,
-				Destination: &ExecFlag.RootFS,
-			},
-			&cli.BoolFlag{
-				Name:        "auto-exit",
-				Usage:       "当没有进程连接时，自动退出服务",
-				Value:       true,
-				Destination: &ExecFlag.AutoExit,
-			},
-			&cli.DurationFlag{
-				Name:        "socket-timeout",
-				Usage:       "终端套接字连接超时",
-				Value:       30 * time.Second,
-				Destination: &ExecFlag.SocketTimeout,
-			},
-			&cli.StringFlag{
-				Name:        "fuse-overlayfs",
-				TakesFile:   true,
-				Value:       "fuse-overlayfs",
-				Destination: &GlobalFlag.FuseOverlayFS,
-				Usage:       "fuse-overlayfs命令路径",
-			},
-			&cli.StringFlag{
-				Name:        "fuse-overlayfs-args",
-				Destination: &GlobalFlag.FuseOverlayFSArgs,
-				Usage:       "fuse-overlayfs命令额外参数",
-			},
-		},
-		Usage:  "进入运行时环境",
-		Action: ExecMain,
+func CreateExecCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "exec",
+		Short: "进入运行时环境",
+		Long:  BuildHelpMessage(ExecCommandHelp),
+		RunE:  ExecMain,
 	}
+
+	cmd.Flags().StringSliceVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
+	cmd.Flags().IntVar(&ExecFlag.UID, "uid", os.Getuid(), "用户ID")
+	cmd.Flags().IntVar(&ExecFlag.GID, "gid", os.Getuid(), "用户组ID")
+	cmd.Flags().StringVar(&ExecFlag.Socket, "socket", "", "可重入终端通信套接字,指定相同的套接字将重用已启动的环境")
+	cmd.Flags().StringVar(&ExecFlag.RootFS, "rootfs", "", "合并的根目录位置")
+	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
+	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
+	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
+	cmd.Flags().SortFlags = false
+	return cmd
 }

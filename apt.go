@@ -13,7 +13,7 @@ import (
 	"syscall"
 
 	"github.com/moby/sys/reexec"
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 const APTCommandHelp = `
@@ -86,21 +86,19 @@ func MountAPT() {
 	}
 	Exec(APTFlag.Args...)
 }
-func APTMain(ctx *cli.Context) error {
-	APTFlag.Args = ctx.Args().Slice()
-	// APTFlag.cmd = cmd
+func APTMain(cmd *cobra.Command, args []string) error {
+	APTFlag.Args = args
 	reexec.Register("MountAPT", MountAPT)
 	if !reexec.Init() {
 		return SwitchTo("MountAPT", &SwitchFlags{UID: 0, GID: 0, Cloneflags: syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER})
 	}
 	return nil
 }
-func CreateAPTCommand() *cli.Command {
-	return &cli.Command{
-		Name:        "apt",
-		Usage:       "进入隔离的APT环境",
-		Description: BuildHelpMessage(APTCommandHelp),
-		Flags:       []cli.Flag{},
-		Action:      APTMain,
+func CreateAPTCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "apt",
+		Short: "进入隔离的APT环境",
+		Long:  BuildHelpMessage(APTCommandHelp),
+		RunE:  APTMain,
 	}
 }

@@ -13,7 +13,7 @@ import (
 	"runtime"
 	"syscall"
 
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 )
 
@@ -28,12 +28,11 @@ func Ptrace(self string, args []string) {
 	args = append([]string{self, "ptrace"}, args...)
 	Exec(args...)
 }
-func PtraceMain(ctx *cli.Context) error {
+func PtraceMain(cmd *cobra.Command, args []string) error {
 	var usage unix.Rusage
 	var wstatus unix.WaitStatus
 	var wpid int
 	runtime.LockOSThread()
-	args := ctx.Args().Slice()
 	if len(args) == 0 {
 		args = []string{DefaultShell()}
 	}
@@ -117,12 +116,13 @@ func PtraceMain(ctx *cli.Context) error {
 		}
 	}
 }
-func CreatePtraceCommand() *cli.Command {
-	return &cli.Command{
-		Name:        "ptrace",
-		Description: BuildHelpMessage(PtraceCommandHelp),
-		Usage:       "修正系统调用(chown)",
-		Flags:       []cli.Flag{},
-		Action:      PtraceMain,
+func CreatePtraceCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "ptrace",
+		Short: "修正系统调用(chown)",
+		Long:  BuildHelpMessage(PtraceCommandHelp),
+		RunE:  PtraceMain,
 	}
+
+	return cmd
 }

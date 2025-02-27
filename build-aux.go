@@ -15,7 +15,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/urfave/cli/v2"
+	"github.com/spf13/cobra"
 )
 
 //go:embed build-aux apt.conf.d sources.list.d/.keep
@@ -62,15 +62,14 @@ func embedFilesToDisk(destDir string) error {
 	return err
 }
 
-func BuildAuxMain(ctx *cli.Context) error {
-	return nil
+func BuildAuxMain(cmd *cobra.Command, args []string) error {
+	return embedFilesToDisk(".")
 }
 
-func CreateBuildAuxCommand() *cli.Command {
-	return &cli.Command{
-		Name:   "build-aux",
-		Usage:  "创建辅助构建脚本",
-		Flags:  []cli.Flag{},
-		Action: BuildAuxMain,
+func CreateBuildAuxCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "build-aux",
+		Short: "创建辅助构建脚本",
+		RunE:  BuildAuxMain,
 	}
 }
