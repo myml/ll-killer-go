@@ -213,7 +213,9 @@ func CreateExecCommand() *cobra.Command {
 		Use:   "exec",
 		Short: "进入运行时环境",
 		Long:  BuildHelpMessage(ExecCommandHelp),
-		RunE:  ExecMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(ExecMain(cmd, args))
+		},
 	}
 
 	cmd.Flags().StringSliceVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")

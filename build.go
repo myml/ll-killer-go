@@ -260,7 +260,9 @@ func CreateBuildCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "build",
 		Short: "构建或进入构建环境",
-		RunE:  BuildMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(BuildMain(cmd, args))
+		},
 	}
 	cmd.Flags().StringVar(&BuildFlag.RootFS, "rootfs", "/run/host/rootfs", "主机根目录路径")
 	cmd.Flags().StringVar(&BuildFlag.TmpRootFS, "tmp-rootfs", "/tmp/rootfs", "临时根目录路径")

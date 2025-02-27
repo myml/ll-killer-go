@@ -121,7 +121,9 @@ func CreatePtraceCommand() *cobra.Command {
 		Use:   "ptrace",
 		Short: "修正系统调用(chown)",
 		Long:  BuildHelpMessage(PtraceCommandHelp),
-		RunE:  PtraceMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(PtraceMain(cmd, args))
+		},
 	}
 
 	return cmd

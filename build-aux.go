@@ -70,6 +70,8 @@ func CreateBuildAuxCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "build-aux",
 		Short: "创建辅助构建脚本",
-		RunE:  BuildAuxMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(BuildAuxMain(cmd, args))
+		},
 	}
 }

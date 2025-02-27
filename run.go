@@ -25,7 +25,9 @@ func CreateRunCommand() *cobra.Command {
 		Use:   "run",
 		Short: "启动容器",
 		Long:  "此命令执行ll-builder run，用于提供一致性体验。",
-		RunE:  RunMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(RunMain(cmd, args))
+		},
 	}
 
 	return cmd

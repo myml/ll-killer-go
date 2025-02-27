@@ -36,7 +36,9 @@ func CreateCleanCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "clean",
 		Short: "清除构建内容",
-		RunE:  CleanMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(CleanMain(cmd, args))
+		},
 	}
 
 	cmd.Flags().BoolVar(&CleanFlag.FileSystem, "filesystem", true, "清除容器文件系统")

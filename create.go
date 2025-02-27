@@ -203,7 +203,9 @@ func CreateCreateCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "创建模板项目",
-		RunE:  CreateMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(CreateMain(cmd, args))
+		},
 	}
 	cmd.Flags().StringVar(&ConfigData.Version, "spec", "1", "玲珑yaml版本")
 	cmd.Flags().StringVar(&ConfigData.Package.ID, "id", "app", "包名")

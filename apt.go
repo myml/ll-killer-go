@@ -99,6 +99,8 @@ func CreateAPTCommand() *cobra.Command {
 		Use:   "apt",
 		Short: "进入隔离的APT环境",
 		Long:  BuildHelpMessage(APTCommandHelp),
-		RunE:  APTMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(APTMain(cmd, args))
+		},
 	}
 }

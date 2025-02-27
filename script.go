@@ -32,7 +32,9 @@ func CreateScriptCommand() *cobra.Command {
 		Use:   "script",
 		Short: "执行自定义构建流程",
 		Long:  BuildHelpMessage(ScriptCommandHelp),
-		RunE:  ScriptMain,
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitWith(ScriptMain(cmd, args))
+		},
 	}
 
 	return cmd
