@@ -146,7 +146,7 @@ func IsExist(name string) bool {
 }
 
 func Mount(opt *MountOption) error {
-	if opt.Flags == 0 || opt.Flags&syscall.MS_BIND != 0 {
+	if opt.FSType == "" && (opt.Flags == 0 || opt.Flags&syscall.MS_BIND != 0) {
 		return MountBind(opt.Source, opt.Target, opt.Flags)
 	}
 	return syscall.Mount(opt.Source, opt.Target, opt.FSType, uintptr(opt.Flags), opt.Data)
