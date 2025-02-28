@@ -1,4 +1,4 @@
-//go:build linux && !amd64
+//go:build linux && !amd64 && !arm64 && !loong64
 
 /*
 * Copyright (c) 2025 System233
