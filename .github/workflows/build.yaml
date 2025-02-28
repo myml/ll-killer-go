@@ -16,7 +16,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.23.0'
+            go-version-file: 'go.mod'
+            cache: true
       - name: Build ll-killer-go
         run: |
           for arch in amd64 arm64 loong64; do
