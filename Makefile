@@ -1,5 +1,5 @@
 GO  ?= go
-GOARCH := $(shell $(GO) env GOARCH)
+GOARCH ?= $(shell $(GO) env GOARCH)
 LDFLAGS_STATIC := -extldflags -static
 TRIMPATH := -trimpath
 

@@ -7,6 +7,7 @@
 package main
 
 import (
+	"ll-killer/ptrace"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -99,8 +100,10 @@ func main() {
 		CreateCommitCommand(),
 		CreateCleanCommand(),
 		CreateBuildAuxCommand(),
-		CreatePtraceCommand(),
 		CreateScriptCommand())
+	if ptrace.IsSupported {
+		app.AddCommand(CreatePtraceCommand())
+	}
 	if err := app.Execute(); err != nil {
 		ExitWith(err)
 	}

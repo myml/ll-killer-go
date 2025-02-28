@@ -9,6 +9,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
+	"ll-killer/ptrace"
 	"log"
 	"os"
 	"path"
@@ -271,7 +272,9 @@ func CreateBuildCommand() *cobra.Command {
 	cmd.Flags().StringVar(&BuildFlag.RootFS, "rootfs", "/run/host/rootfs", "主机根目录路径")
 	cmd.Flags().StringVar(&BuildFlag.TmpRootFS, "tmp-rootfs", "/tmp/rootfs", "临时根目录路径")
 	cmd.Flags().StringVar(&BuildFlag.CWD, "cwd", cwd, "当前工作目录路径")
-	cmd.Flags().BoolVar(&BuildFlag.Ptrace, "ptrace", false, "修正系统调用(chown)")
+	if ptrace.IsSupported {
+		cmd.Flags().BoolVar(&BuildFlag.Ptrace, "ptrace", false, "修正系统调用(chown)")
+	}
 	cmd.Flags().StringVar(&BuildFlag.EncodedArgs, "encoded-args", "", "编码后的参数")
 	cmd.Flags().StringVar(&BuildFlag.Self, "self", os.Args[0], "ll-killer路径")
 	cmd.Flags().BoolVarP(&BuildFlag.Strict, "strict", "x", os.Getenv("LINGLONG_APPID") == "", "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）")

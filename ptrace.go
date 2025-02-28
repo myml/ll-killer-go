@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"syscall"
 
+	ptrace "ll-killer/ptrace"
+
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 )
@@ -98,16 +100,9 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("PtraceGetRegs:%v", err)
 		}
-		if regs.Orig_rax == syscall.SYS_CHOWN || regs.Orig_rax == syscall.SYS_FCHOWN || regs.Orig_rax == syscall.SYS_FCHOWNAT {
-			// log.Println("SYS_CHOWN", regs.Rdx, regs.R10)
-			if os.Getuid() != int(regs.Rdx) || os.Getgid() != int(regs.R10) {
-				regs.Rdx = uint64(os.Getuid())
-				regs.R10 = uint64(os.Getgid())
-				err = unix.PtraceSetRegs(wpid, &regs)
-				if err != nil {
-					return fmt.Errorf("PtraceSetRegs:%v", err)
-				}
-			}
+		err = ptrace.PtraceHandle(wpid, regs)
+		if err != nil {
+			return fmt.Errorf("PtraceHandle:%v", err)
 		}
 		err = unix.PtraceSyscall(wpid, 0)
 

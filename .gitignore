@@ -1,4 +1,3 @@
-./ll-killer
 linglong
 *.layer
 *.uab
@@ -7,6 +6,6 @@ apt.conf
 sources.list
 package.info
 *.log
-/ll-killer
 tests
 fuse-overlayfs
+/ll-killer
