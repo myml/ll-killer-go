@@ -32,12 +32,12 @@
   - [目录](#目录)
   - [安装与配置](#安装与配置)
     - [获取 ll-killer](#获取-ll-killer)
-      - [1. 使用预编译二进制](#1-使用预编译二进制)
-      - [2. 手动编译](#2-手动编译)
     - [环境要求](#环境要求)
   - [命令概览](#命令概览)
   - [各命令详细介绍](#各命令详细介绍)
     - [1. `apt` — 进入隔离的 APT 环境](#1-apt--进入隔离的-apt-环境)
+    - [2. create — 创建玲珑项目](#2-create--创建玲珑项目)
+      - [从APT元数据创建项目](#从apt元数据创建项目)
     - [2. `build` — 构建或进入构建环境](#2-build--构建或进入构建环境)
     - [3. `exec` — 进入运行时环境](#3-exec--进入运行时环境)
     - [4. `run` — 启动容器](#4-run--启动容器)
@@ -69,11 +69,11 @@
 
 你可以下载预编译的二进制，或手动编译本项目。
 
-#### 1. 使用预编译二进制
+**使用预编译二进制**
 
 在项目 [Release](https://github.com/System233/ll-killer-go/releases) 页下载预编译的二进制文件，一般使用amd64版本，下载后改名为`ll-killer`，并添加执行权限。   
 上述步骤可使用以下命令一键完成：
-```shell
+```bash
 wget https://github.com/System233/ll-killer-go/releases/latest/download/ll-killer-amd64 -O ll-killer
 chmod +x ll-killer
 
@@ -81,28 +81,29 @@ chmod +x ll-killer
 ```
 
 你可以将命令安装至`~/.local/bin`，以便随时使用。
-```shell
+```bash
 mkdir -p ~/.local/bin
 mv ./ll-killer ~/.local/bin
 ```
 
-#### 2. 手动编译
+**手动编译**
+
 1. 克隆或下载项目源码。  
    ```sh
    git clone https://github.com/System233/ll-killer-go.git
    cd ll-killer-go
    ```
-2. 安装 Golang 环境。  
+1. 安装 Golang 环境。  
    ```sh
    sudo apt install golang
    ```
-3. 使用 `make` 命令编译并生成可执行文件，默认生成主机架构的二进制。
+2. 使用 `make` 命令编译并生成可执行文件，默认生成主机架构的二进制。
 
 ### 环境要求
 - Linux 系统（支持多种发行版）
 - Go 编译环境
 - 主机必须安装 `fuse-overlayfs`/`linglong-bin`
-- 主机可选安装：`apt`/`apt-file`，apt相关功能需要。
+- 主机可选安装：`apt`/`apt-file`，用于apt相关和依赖查找功能。
 
 ## 命令概览
 
@@ -139,6 +140,42 @@ ll-killer apt -- bash
 - 当前目录下的 `apt.conf`, `apt.conf.d`, `sources.list`, 和 `sources.list.d` 文件会被挂载到 `/etc` 目录，可以在这些文件中自定义 APT 配置。
 - 隔离环境中的 APT 缓存会被构建容器重用。
 
+
+### 2. create — 创建玲珑项目
+
+**应用场景**：`create` 命令用于创建新的玲珑容器应用项目。你可以通过此命令生成一个基础项目框架，并根据需要自定义项目的构建命令、应用描述、运行时环境等。此命令还支持从APT Package元数据创建项目，并自动生成相关配置，省去手动查找和配置依赖包的麻烦。
+
+用法：
+
+```bash
+ll-killer create [flags]
+```
+
+示例：
+
+```bash
+ll-killer create --name "MyApp" --version "1.0.0""
+```
+
+#### 从APT元数据创建项目
+
+`ll-killer create` 支持通过`apt show`输出的包元数据创建项目，以下是创建GIMP图像处理应用项目的示例：
+```bash
+# 将 gimp 包的信息保存到 package.info
+apt show gimp > package.info
+
+# 从 package.info 提取信息并在当前目录创建玲珑项目
+ll-killer create --name "MyApp" --version "1.0.0" --from "package.info"
+```
+该命令会根据 `apt show <pkg>` 输出的元数据创建应用项目，自动填充包名、描述、版本等信息。
+
+**注意事项**
+
+- 使用 `--from` 参数时，可以通过 `apt show <pkg>` 输出的元数据自动生成项目的基础配置信息。这对于从现有的APT包创建容器应用项目非常有用。
+- 默认情况下，`ll-killer create`会在创建项目时自动构建一次。
+- 若指定 `--no-build`，则只会生成项目的基本模板，而不会自动进行构建步骤。您可以手动根据需求运行构建命令。  
+- 在从未对项目进行构建(如`ll-builder build`)的情况下，使用`ll-killer build`时必须关闭严格模式。
+
 ### 2. `build` — 构建或进入构建环境
 
 **应用场景**：构建项目的核心命令。此命令可以进入构建环境，执行各种构建任务，确保以 root 权限执行命令，如 `apt` 安装等。你还可以自定义构建命令。
@@ -156,7 +193,8 @@ ll-killer build -- make install
 **注意事项**：
 - 构建环境在退出后不会消失，你可以多次进入环境进行调整。
 - 使用 `--strict` 标志可以启动严格模式，确保与运行时环境一致，但此模式下不包括开发工具（如 gcc）。
-- 构建环境会挂载主机根文件系统，也支持临时根目录和自定义 fuse-overlayfs 配置。
+- 使用 `--strict` 标志启用严格模式时，项目必须至少使用`ll-builder build`构建一次
+- 构建环境会挂载主机根文件系统，也支持临时根目录和自定义 `fuse-overlayfs` 配置。
 - 主机必须安装`fuse-overlayfs`
 
 
