@@ -31,7 +31,7 @@
     - [特色功能](#特色功能)
   - [目录](#目录)
   - [安装与配置](#安装与配置)
-    - [获取ll-killer](#获取ll-killer)
+    - [获取 ll-killer](#获取-ll-killer)
       - [1. 使用预编译二进制](#1-使用预编译二进制)
       - [2. 手动编译](#2-手动编译)
     - [环境要求](#环境要求)
@@ -65,13 +65,26 @@
 
 ## 安装与配置
 
-### 获取ll-killer
+### 获取 ll-killer
 
 你可以下载预编译的二进制，或手动编译本项目。
 
 #### 1. 使用预编译二进制
 
-在项目[Release](https://github.com/System233/ll-killer-go/releases)页下载预编译的二进制文件。 
+在项目 [Release](https://github.com/System233/ll-killer-go/releases) 页下载预编译的二进制文件，一般使用amd64版本，下载后改名为`ll-killer`，并添加执行权限。   
+上述步骤可使用以下命令一键完成：
+```shell
+wget https://github.com/System233/ll-killer-go/releases/latest/download/ll-killer-amd64 -O ll-killer
+chmod +x ll-killer
+
+./ll-killer -h
+```
+
+你可以将命令安装至`~/.local/bin`，以便随时使用。
+```shell
+mkdir -p ~/.local/bin
+mv ./ll-killer ~/.local/bin
+```
 
 #### 2. 手动编译
 1. 克隆或下载项目源码。  
@@ -83,7 +96,7 @@
    ```sh
    sudo apt install golang
    ```
-3. 使用 `make` 命令编译并生成可执行文件。
+3. 使用 `make` 命令编译并生成可执行文件，默认生成主机架构的二进制。
 
 ### 环境要求
 - Linux 系统（支持多种发行版）
@@ -241,6 +254,14 @@ ll-killer ptrace -- <command> [arguments...]
 ```bash
 ll-killer ptrace -- chown root:root /path/to/file
 ```
+
+无论chown设置所有者为谁，都只会设置成自己，以确保该命令成功。  
+此功能用于忽略apt安装某些库过程中可能出现的权限问题。
+
+**注意事项**：
+- 此模式将极大降低目标的性能
+
+
 
 ### 9. `script` — 执行自定义构建脚本
 
