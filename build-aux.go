@@ -8,7 +8,6 @@ package main
 
 import (
 	"embed"
-	_ "embed"
 	"io"
 	"io/fs"
 	"log"
