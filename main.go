@@ -97,6 +97,7 @@ func main() {
 		CreateBuildCommand(),
 		CreateExecCommand(),
 		CreateRunCommand(),
+		CreateCreateCommand(),
 		CreateCommitCommand(),
 		CreateCleanCommand(),
 		CreateBuildAuxCommand(),
