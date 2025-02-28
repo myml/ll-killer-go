@@ -1,8 +1,8 @@
 #!/bin/bash
 if [ -z "$ENV_SETUPED" ];then
     export ENV_SETUPED=1
-    export ENTRYPOINT=entrypoint.sh
-    export KILLER_EXEC=$(which ll-killer)
+    export ENTRYPOINT=${ENTRYPOINT:-entrypoint.sh}
+    export KILLER_EXEC=${KILLER_EXEC:-$(which ll-killer)}
     export PATH=$PATH:$(dirname $0)
     
     if [ -z "$KILLER_EXEC" ];then
