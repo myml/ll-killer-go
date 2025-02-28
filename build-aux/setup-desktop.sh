@@ -3,6 +3,7 @@ set -e
 source $(dirname $0)/env.sh
 
 DESKTOP="$1"
+echo "$DESKTOP"
 sed -E -i -e "s:^\s*Exec\s*=:Exec=$ENTRYPOINT :g" "$DESKTOP"
 while read icon; do
     if [[ $icon == /* ]]; then

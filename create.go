@@ -179,6 +179,8 @@ func CreateMain(cmd *cobra.Command, args []string) error {
 
 	SetupPackageMetadata(cmd)
 
+	ConfigData.Command[0] = strings.ReplaceAll(ConfigData.Command[0], "<APPID>", ConfigData.Package.ID)
+
 	fs, err := os.Create(kLinglongYaml)
 	if err != nil {
 		return err
@@ -213,7 +215,7 @@ func CreateCreateCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ConfigData.Package.Version, "version", "0.0.0.1", "版本号")
 	cmd.Flags().StringVar(&ConfigData.Package.Kind, "kind", "app", "应用类型：app|runtime")
 	cmd.Flags().StringVar(&ConfigData.Package.Description, "description", "", "应用说明")
-	cmd.Flags().StringSliceVar(&ConfigData.Command, "command", []string{"entrypoint.sh"}, "启动命令")
+	cmd.Flags().StringArrayVar(&ConfigData.Command, "command", []string{"/opt/apps/<APPID>/files/entrypoint.sh"}, "启动命令")
 	cmd.Flags().StringVar(&ConfigData.Base, "base", "org.deepin.base/23.1.0", "Base镜像")
 	cmd.Flags().StringVar(&ConfigData.Runtime, "runtime", "", "Runtime镜像")
 	cmd.Flags().StringVar(&ConfigData.Build, "build", "build-aux/setup.sh", "构建命令")

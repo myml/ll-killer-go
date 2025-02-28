@@ -153,7 +153,11 @@ func MountOverlay() {
 	if err != nil {
 		log.Fatalln("PivotRoot:", BuildFlag.RootFS, cwdRootFSPivoted, err)
 	}
-	fuseOverlayFSOption := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s,squash_to_root,static_nlink", tmpRootFS+lowerDir, tmpRootFS+tmpRootFS, tmpRootFS+upperDir, tmpRootFS+workDir)
+	fuseOverlayFSOption := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s,squash_to_root",
+		tmpRootFS+lowerDir,
+		tmpRootFS+tmpRootFS,
+		tmpRootFS+upperDir,
+		tmpRootFS+workDir)
 	fuseOverlayFSArgs := []string{"-o", fuseOverlayFSOption, tmpRootFS + mergedDir}
 	if GlobalFlag.FuseOverlayFSArgs != "" {
 		fuseOverlayFSArgs = append(fuseOverlayFSArgs, strings.Split(GlobalFlag.FuseOverlayFSArgs, " ")...)

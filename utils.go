@@ -39,6 +39,7 @@ const (
 	kKillerDebug      = "KILLER_DEBUG"
 	kMountArgsSep     = ":"
 	kMountArgsItemSep = "+"
+	FuseOverlayFSType = "fuse-overlayfs"
 )
 
 var GlobalFlag = struct {
@@ -288,7 +289,6 @@ func ParseMountFlag(flag string) int {
 	return value
 }
 func ParseMountOption(item string) MountOption {
-	log.Println(item)
 	chunks := strings.SplitN(item, kMountArgsSep, 5)
 	opt := MountOption{}
 	if len(chunks) >= 2 {
@@ -401,16 +401,14 @@ func (opt *MountOption) Mount() error {
 		}
 		return nil
 	}
-	if opt.FSType == "fuse-overlayfs" {
+	if opt.FSType == FuseOverlayFSType {
 		fuseOverlayFSArgs := []string{"-o", opt.Data, opt.Target}
 		if GlobalFlag.FuseOverlayFSArgs != "" {
 			fuseOverlayFSArgs = append(fuseOverlayFSArgs, strings.Split(GlobalFlag.FuseOverlayFSArgs, " ")...)
 		}
 		dirs := []string{opt.Target}
-		log.Println("opt.Data", opt.Data)
 		for _, item := range strings.Split(opt.Data, ",") {
 			param := strings.SplitN(item, "=", 2)
-			log.Println(item, param)
 			if len(param) == 2 {
 				key := strings.TrimSpace(param[0])
 				value := strings.TrimSpace(param[1])
@@ -419,6 +417,7 @@ func (opt *MountOption) Mount() error {
 				}
 			}
 		}
+		Debug("mkdir.overlay", dirs)
 		if err := MkdirAlls(dirs, 0755); err != nil {
 			log.Println(err)
 		}

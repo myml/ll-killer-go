@@ -121,6 +121,21 @@ func GetChannelFlags() *ChannelFlags {
 	cflags.AutoExit = ExecFlag.AutoExit
 	return cflags
 }
+func PivotRootSystem() {
+	Debug("PivotRootSystem")
+	err := MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	oldRootFS := fmt.Sprint(ExecFlag.RootFS, ExecFlag.RootFS)
+	Debug("PivotRoot", ExecFlag.RootFS, oldRootFS)
+	err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	ExecShell()
+}
+
 func ExecSystem() {
 	Debug("ExecSystem")
 	if ExecFlag.Socket != "" {
@@ -130,13 +145,31 @@ func ExecSystem() {
 		Exec(ExecFlag.Args...)
 	}
 }
+func ExecShell() {
+	if ExecFlag.UID == 0 && ExecFlag.GID == 0 {
+		Exec(BuildFlag.Args...)
+		return
+	}
+	err := SwitchTo("ExecSystem", &SwitchFlags{
+		UID:        ExecFlag.UID,
+		GID:        ExecFlag.GID,
+		Cloneflags: syscall.CLONE_NEWUSER,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
 func MountFileSystem() {
 	Debug("MountFileSystem")
+	overlayFs := false
 	for _, mount := range ExecFlag.Mounts {
 		opt := ParseMountOption(mount)
 		err := opt.Mount()
 		if err != nil {
 			log.Println(err)
+		}
+		if opt.FSType == FuseOverlayFSType {
+			overlayFs = true
 		}
 	}
 
@@ -146,29 +179,21 @@ func MountFileSystem() {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		err = MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
+
+		if overlayFs {
+			err = SwitchTo("PivotRootSystem", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
+		} else {
+			err = MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
+		}
 		if err != nil {
 			log.Fatalln(err)
 		}
-
-		err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
-		if err != nil {
-			log.Fatalln(err)
-		}
 	}
-	if ExecFlag.UID == 0 && ExecFlag.GID == 0 {
-		Exec(BuildFlag.Args...)
-		return
-	}
-
-	err := SwitchTo("ExecSystem", &SwitchFlags{
-		UID:        ExecFlag.UID,
-		GID:        ExecFlag.GID,
-		Cloneflags: syscall.CLONE_NEWUSER,
-	})
-	if err != nil {
-		log.Fatalln(err)
-	}
+	ExecShell()
 }
 func StartMountFileSystem() error {
 	return SwitchTo("MountFileSystem", &SwitchFlags{
@@ -184,6 +209,7 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 	ExecFlag.Args = args
 	reexec.Register("MountFileSystem", MountFileSystem)
 	reexec.Register("ExecSystem", ExecSystem)
+	reexec.Register("PivotRootSystem", PivotRootSystem)
 	if !reexec.Init() {
 		if ExecFlag.Socket != "" {
 			var signal chan error = make(chan error)
@@ -218,7 +244,8 @@ func CreateExecCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringSliceVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
+	// cmd.Flags().StringSliceVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
+	cmd.Flags().StringArrayVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
 	cmd.Flags().IntVar(&ExecFlag.UID, "uid", os.Getuid(), "用户ID")
 	cmd.Flags().IntVar(&ExecFlag.GID, "gid", os.Getuid(), "用户组ID")
 	cmd.Flags().StringVar(&ExecFlag.Socket, "socket", "", "可重入终端通信套接字,指定相同的套接字将重用已启动的环境")
