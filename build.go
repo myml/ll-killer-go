@@ -37,10 +37,6 @@ const BuildCommandHelp = `
 # 使用默认选项进入构建环境shell
 <program> build
 
-# 进入构建环境，修正系统调用（chown）以便在容器内避免文件权限引起的失败。
-# 注意：该选项将极大降低构建环境中程序的性能
-<program> build --ptrace -- bash
-
 # 使用 fuse-overlayfs 进行构建，指定 fuse-overlayfs 命令路径
 <program> build --fuse-overlayfs /path/to/fuse-overlayfs
 
@@ -67,7 +63,9 @@ func GetBuildArgs() []string {
 		args = append(args, "--strict")
 	}
 
-	args = append(args, "--ptrace="+fmt.Sprint(BuildFlag.Ptrace))
+	if ptrace.IsSupported {
+		args = append(args, "--ptrace="+fmt.Sprint(BuildFlag.Ptrace))
+	}
 
 	if GlobalFlag.FuseOverlayFS != "" {
 		args = append(args, "--fuse-overlayfs", GlobalFlag.FuseOverlayFS)
@@ -98,7 +96,7 @@ func MountOverlayStage2() {
 	if err != nil {
 		log.Fatalln("PivotRoot2:", err)
 	}
-	if BuildFlag.Ptrace {
+	if BuildFlag.Ptrace && ptrace.IsSupported {
 		Ptrace(BuildFlag.Self, BuildFlag.Args)
 	} else {
 		Exec(BuildFlag.Args...)
