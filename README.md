@@ -46,7 +46,7 @@
     - [7. `build-aux` — 创建辅助构建脚本](#7-build-aux--创建辅助构建脚本)
     - [8. `ptrace` — 修正系统调用](#8-ptrace--修正系统调用)
     - [9. `script` — 执行自定义构建脚本](#9-script--执行自定义构建脚本)
-  - [注意事项](#注意事项)
+    - [注意事项](#注意事项)
   - [挂载相关功能](#挂载相关功能)
       - [1. 进入运行时环境并挂载文件系统](#1-进入运行时环境并挂载文件系统)
       - [例 1: 使用 `merge` 合并文件系统](#例-1-使用-merge-合并文件系统)
@@ -64,6 +64,7 @@
       - [1. 具有Root的玲珑开发环境](#1-具有root的玲珑开发环境)
       - [2. Rootless的玲珑开发环境](#2-rootless的玲珑开发环境)
       - [3. 基于Ptrace+Rootless的玲珑开发环境](#3-基于ptracerootless的玲珑开发环境)
+  - [疑难解答](#疑难解答)
   - [贡献与维护](#贡献与维护)
   - [许可](#许可)
 
@@ -320,7 +321,7 @@ ll-killer script -- <build script> [arguments...]
 KILLER_EXEC=path/to/ll-killer <build script> [arguments...]
 ```
 
-## 注意事项
+### 注意事项
 - 使用 `--help` 参数可以查看每个子命令的详细帮助信息。
 - 确保在项目创建和构建阶段，`linglong.yaml` 配置文件已经正确设置。
 - 严格模式下，构建环境中不会包含开发工具，如编译器等，仅包含运行时环境所需的最小工具集。
@@ -510,6 +511,32 @@ ll-killer ptrace -- bash
 
 **注意事项**：
  * 此模式将极大降低程序性能，请仅在开发环境使用。
+
+## 疑难解答
+
+**build环境内使用apt安装出现chown权限问题**  
+ 可以添加`--ptrace`参数解决。
+
+**build环境内某些目录写入出现`Permission denied`**  
+ 是因为`fuse-overlayfs`有bug所致，需要重新编译：
+ ```bash
+ git clone https://github.com/containers/fuse-overlayfs.git
+ cd fuse-overlayfs
+ autoreconf
+ automake --add-missing
+ autoreconf
+ ./configure
+ make -j8
+ ```
+ 复制上述步骤产生的`fuse-overlayfs`文件到项目目录，然后添加build参数`--fuse-overlayfs "$(pwd)/fuse-overlayfs"`。
+
+ 复制`fuse-overlayfs`到项目目录内时，会自动启用运行时的`fuse-overlayfs`挂载模式（默认为合并挂载），请确保环境内可以运行此主机编译的`fuse-overlayfs`二进制文件，如提示缺少libfuse3，容器内使用命令`apt install fuse3`安装即可。
+
+**使用root模式构建后，ll-killer commit/ll-builder build出现错误**  
+删除linglong文件夹，或`chown -R $(id -u):$(id -g) linglong`将文件所有者改为自己。
+
+**apt安装某些包时总是提示依赖不满足**  
+请确保`sources.list`中列出的源与玲珑`base`兼容。
 
 ## 贡献与维护
 
