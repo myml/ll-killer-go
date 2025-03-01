@@ -456,12 +456,12 @@ ll-killer exec --mount /dir1+/dir2:/mnt/merged:merge
 ```bash
 # 填写玲珑base的存储地址，在这个目录中：~/.cache/linglong-builder/layers/main/中
 # 格式： {BASE名称}/{BASE版本}/{架构}/{binary运行时版本/develop开发版本}
-BASE_TYPE="org.deepin.base/23.1.0.3/x86_64/binary"
-BASE_DIR="~/.cache/linglong-builder/layers/main/$BASE_TYPE/files/"
+# export KILLER_DEBUG=1 # ll-killer调试模式
+BASE_DIR="/home/uos/.cache/linglong-builder/layers/main/org.deepin.base/23.1.0.2/arm64/binary/files/"
 CWD=$(pwd)
 FS="$CWD/linglong/filesystem"
 ROOTFS=$FS/merged
-mkdir -p "$FS/{merged,diff,work}"
+mkdir -p $FS/{merged,diff,work}
 ll-killer exec \
 --mount "overlay:$FS/merged::overlay:lowerdir=$BASE_DIR,upperdir=$FS/diff,workdir=$FS/work" \
 --mount "/proc:$ROOTFS/proc:rbind" \
@@ -469,13 +469,17 @@ ll-killer exec \
 --mount "/tmp:$ROOTFS/tmp:rbind" \
 --mount "/sys:$ROOTFS/sys:rbind" \
 --mount "/etc/resolv.conf:$ROOTFS/etc/resolv.conf:rbind" \
---rootfs $ROOTFS/merged \
+--rootfs $ROOTFS \
 --root \
--- sh
+-- ${@:-sh}
+
 ```
 使用root权限执行上述命令即可获得一个具有真实root权限的玲珑容器运行时环境，你可以在其中安装所需的软件，文件系统差异由overlay文件系统自动捕获到`$FS/diff`中。  
 
 若已在当前项目使用ll-killer创建并初始化玲珑项目，可以直接使用`ll-killer commit`命令打包本应用。
+
+**注意事项**：
+* 此模式下会产生root所属的文件。
 
 
 #### 2. Rootless的玲珑开发环境
