@@ -47,18 +47,23 @@
     - [8. `ptrace` — 修正系统调用](#8-ptrace--修正系统调用)
     - [9. `script` — 执行自定义构建脚本](#9-script--执行自定义构建脚本)
   - [注意事项](#注意事项)
-- [挂载相关功能](#挂载相关功能)
-  - [1. 进入运行时环境并挂载文件系统](#1-进入运行时环境并挂载文件系统)
-    - [例 1: 使用 `merge` 合并文件系统](#例-1-使用-merge-合并文件系统)
-    - [例 2: 挂载源路径到目标路径，指定用户和组](#例-2-挂载源路径到目标路径指定用户和组)
-    - [例 3: 使用自定义的 Unix 套接字和合并根目录路径](#例-3-使用自定义的-unix-套接字和合并根目录路径)
-    - [例 4: 使用不同的挂载选项](#例-4-使用不同的挂载选项)
-  - [2. 挂载选项详解](#2-挂载选项详解)
-    - [基本语法](#基本语法)
-    - [支持的挂载标志](#支持的挂载标志)
-    - [合并挂载（Merge Mount）](#合并挂载merge-mount)
+  - [挂载相关功能](#挂载相关功能)
+      - [1. 进入运行时环境并挂载文件系统](#1-进入运行时环境并挂载文件系统)
+      - [例 1: 使用 `merge` 合并文件系统](#例-1-使用-merge-合并文件系统)
+      - [例 2: 挂载源路径到目标路径，指定用户和组](#例-2-挂载源路径到目标路径指定用户和组)
+      - [例 3: 使用自定义的 Unix 套接字和合并根目录路径](#例-3-使用自定义的-unix-套接字和合并根目录路径)
+      - [例 4: 使用不同的挂载选项](#例-4-使用不同的挂载选项)
+    - [2. 挂载选项详解](#2-挂载选项详解)
+      - [基本语法](#基本语法)
+      - [支持的挂载标志](#支持的挂载标志)
+      - [合并挂载（Merge Mount）](#合并挂载merge-mount)
     - [例：使用合并挂载](#例使用合并挂载)
-  - [3. 注意事项](#3-注意事项)
+    - [3. 注意事项](#3-注意事项)
+  - [高级进阶玩法](#高级进阶玩法)
+    - [1. 脱离ll-builder/ll-box构建](#1-脱离ll-builderll-box构建)
+      - [1. 具有Root的玲珑开发环境](#1-具有root的玲珑开发环境)
+      - [2. Rootless的玲珑开发环境](#2-rootless的玲珑开发环境)
+      - [3. 基于Ptrace+Rootless的玲珑开发环境](#3-基于ptracerootless的玲珑开发环境)
   - [贡献与维护](#贡献与维护)
   - [许可](#许可)
 
@@ -320,15 +325,15 @@ KILLER_EXEC=path/to/ll-killer <build script> [arguments...]
 - 确保在项目创建和构建阶段，`linglong.yaml` 配置文件已经正确设置。
 - 严格模式下，构建环境中不会包含开发工具，如编译器等，仅包含运行时环境所需的最小工具集。
 
-# 挂载相关功能
+## 挂载相关功能
 
 `ll-killer` 提供了强大的挂载功能，使你能够灵活地管理和调整容器中的文件系统。通过挂载选项，你可以将主机上的目录或文件与容器内的目录进行绑定、合并或覆盖。本文将详细介绍如何使用 `ll-killer` 的挂载功能以及常见的用法和注意事项。
 
-## 1. 进入运行时环境并挂载文件系统
+#### 1. 进入运行时环境并挂载文件系统
 
 你可以使用 `--mount` 参数来挂载主机文件系统到容器内。以下是几个常见的挂载用法示例。
 
-### 例 1: 使用 `merge` 合并文件系统
+#### 例 1: 使用 `merge` 合并文件系统
 
 在运行时环境中，使用当前用户的 UID 和 GID，合并挂载文件系统并使用 `/myrootfs` 的内容覆盖容器根文件系统。合并文件系统使你能够在没有内核 `overlayfs` 或 `fuse` 模块的支持下，堆叠多个源目录。
 
@@ -341,7 +346,7 @@ ll-killer exec --mount /+/myrootfs:/::merge -- bash
 - `/`: 这是目标目录，即容器内的根文件系统将会被合并。
 - `::merge`: 指定合并挂载类型。
 
-### 例 2: 挂载源路径到目标路径，指定用户和组
+#### 例 2: 挂载源路径到目标路径，指定用户和组
 
 将主机上的 `/path/to/source` 目录挂载到容器内的 `/path/to/target` 目录，同时指定容器中运行进程的 UID 和 GID。
 
@@ -354,7 +359,7 @@ ll-killer exec --mount /path/to/source:/path/to/target --uid 2000 --gid 2000 --c
 - `--uid 2000 --gid 2000`: 指定容器内进程的 UID 和 GID。
 - `--chroot=false`: 禁用 `chroot` 环境。
 
-### 例 3: 使用自定义的 Unix 套接字和合并根目录路径
+#### 例 3: 使用自定义的 Unix 套接字和合并根目录路径
 
 挂载自定义的 Unix 套接字文件和合并根文件系统路径。该命令支持将 `/etc` 目录挂载到容器内。
 
@@ -367,7 +372,7 @@ ll-killer exec --socket /tmp/myapp.sock --rootfs /tmp/myapp.rootfs --mount /etc:
 - `--rootfs /tmp/myapp.rootfs`: 指定合并后的根文件系统路径。
 - `--mount /etc:/etc`: 挂载主机的 `/etc` 目录到容器的 `/etc`。
 
-### 例 4: 使用不同的挂载选项
+#### 例 4: 使用不同的挂载选项
 
 你可以为挂载操作指定多个选项，例如读写权限、禁用某些功能等。
 
@@ -380,9 +385,9 @@ ll-killer exec --mount /data:/data:rw+nosuid --uid 1000 --gid 1000 --rootfs /var
 - `--uid 1000 --gid 1000`: 指定 UID 和 GID。
 - `--rootfs /var/run/myapp.rootfs`: 使用自定义根文件系统路径。
 
-## 2. 挂载选项详解
+### 2. 挂载选项详解
 
-### 基本语法
+#### 基本语法
 挂载选项使用 `--mount` 参数，语法如下：
 
 ```bash
@@ -395,7 +400,7 @@ ll-killer exec --mount /data:/data:rw+nosuid --uid 1000 --gid 1000 --rootfs /var
 - **文件系统类型**：默认为 `none`，可以指定特定的文件系统类型。
 - **额外数据**：可以指定排除某些目录等附加信息。
 
-### 支持的挂载标志
+#### 支持的挂载标志
 
 `ll-killer` 支持以下挂载标志，具体的标志根据你的需求选择使用：
 
@@ -408,7 +413,7 @@ ll-killer exec --mount /data:/data:rw+nosuid --uid 1000 --gid 1000 --rootfs /var
 
 具体可以参考 Linux `mount` 命令的挂载标志，`ll-killer` 提供了大部分常见的挂载选项。
 
-### 合并挂载（Merge Mount）
+#### 合并挂载（Merge Mount）
 
 `ll-killer` 提供了一种特殊的挂载类型——合并挂载（`merge`）。这使你能够将多个目录堆叠在一起，在不依赖内核的 `overlayfs` 或 `fuse` 模块的情况下实现文件系统层叠。
 
@@ -433,13 +438,74 @@ ll-killer exec --mount /dir1+/dir2:/mnt/merged:merge
 - `/dir1+/dir2`: 将两个目录合并在一起，`dir2` 中的文件将覆盖 `dir1` 中的冲突文件。
 - `/mnt/merged`: 合并后的文件系统将挂载到这个目标目录。
 
-## 3. 注意事项
+### 3. 注意事项
 
 - 在进行合并挂载时，文件系统的优先级按从右到左的顺序决定，越靠后的目录优先级越高，后挂载的目录中的冲突文件会覆盖前面挂载的文件。
 - 如果某目录只在一个源目录中出现，它将直接绑定到目标目录。如果该目录是只读的，那么挂载后的文件夹也会保持只读属性。
 - 合并挂载对于没有内核 `overlayfs` 或 `fuse` 模块支持的系统仍然有效，适用于跨平台的使用场景。
 
 通过 `ll-killer` 的挂载功能，你可以灵活地管理容器环境中的文件系统，使得容器的构建和运行更加高效和隔离。
+
+## 高级进阶玩法
+
+### 1. 脱离ll-builder/ll-box构建
+在最新的ll-killer中，可以使用`ll-killer exec`子命令直接启动玲珑容器环境，从而绕过玲珑容器的一系列限制，同时支持root和rootless权限。
+
+#### 1. 具有Root的玲珑开发环境
+此容器中的root具有和宿主机相同的权限，主要用于解决文件系统权限相关的问题，在基于内核的idmap挂载实现之前，不失为一种解决办法。
+```bash
+# 填写玲珑base的存储地址，在这个目录中：~/.cache/linglong-builder/layers/main/中
+# 格式： {BASE名称}/{BASE版本}/{架构}/{binary运行时版本/develop开发版本}
+BASE_TYPE="org.deepin.base/23.1.0.3/x86_64/binary"
+BASE_DIR="~/.cache/linglong-builder/layers/main/$BASE_TYPE/files/"
+CWD=$(pwd)
+FS="$CWD/linglong/filesystem"
+ROOTFS=$FS/merged
+mkdir -p "$FS/{merged,diff,work}"
+ll-killer exec \
+--mount "overlay:$FS/merged::overlay:lowerdir=$BASE_DIR,upperdir=$FS/diff,workdir=$FS/work" \
+--mount "/proc:$ROOTFS/proc:rbind" \
+--mount "/dev:$ROOTFS/dev:rbind" \
+--mount "/tmp:$ROOTFS/tmp:rbind" \
+--mount "/sys:$ROOTFS/sys:rbind" \
+--mount "/etc/resolv.conf:$ROOTFS/etc/resolv.conf:rbind" \
+--rootfs $ROOTFS/merged \
+--root \
+-- sh
+```
+使用root权限执行上述命令即可获得一个具有真实root权限的玲珑容器运行时环境，你可以在其中安装所需的软件，文件系统差异由overlay文件系统自动捕获到`$FS/diff`中。  
+
+若已在当前项目使用ll-killer创建并初始化玲珑项目，可以直接使用`ll-killer commit`命令打包本应用。
+
+
+#### 2. Rootless的玲珑开发环境
+`Rootless`环境中的用户身份仍然是root，但该root不是真实的root，它的权限与运行命令时用户的权限相同。  
+使用非root用户执行之前的shell脚本即可进入rootless玲珑开发环境，可以在环境中正常运行任何不影响文件权限的命令，包括apt安装等，只是一旦应用使用的chown等命令，则会遇到权限问题。
+
+
+**注意事项**：
+* 由于尚未实现内核`idmap`挂载，这个问题请看下一节。
+
+#### 3. 基于Ptrace+Rootless的玲珑开发环境
+在上一个章节中已经讲述了如何启动`rootless`开发环境，但是存在一些权限问题，本章节提供了一种权限问题的缓解办法。
+
+`ll-killer`提供了一个`ptrace`子命令，该命令在`amd64`、`arm64`和`loong64(未测试)`架构上可用。
+该命令可以拦截子命令的`chown`系统调用，使其重定向到当前用户，可以避免出现权限问题。
+
+**示例：**
+在`rootless`容器中执行此命令，可规避`apt install`时出现的chown错误。
+```bash
+ll-killer ptrace -- apt install <deb>
+
+# 即便当前UID不是1234，也没有ROOT权限，此命令也不会错误。
+ll-killer ptrace -- chown 1234:1234 test
+
+# 直接进入一个屏蔽chown错误的命令行环境。
+ll-killer ptrace -- bash
+```
+
+**注意事项**：
+ * 此模式将极大降低程序性能，请仅在开发环境使用。
 
 ## 贡献与维护
 

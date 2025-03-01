@@ -18,7 +18,9 @@ import (
 )
 
 var ExecFlag struct {
-	Mounts        []string
+	Mounts []string
+	// UidMappings   []string
+	// GidMappings   []string
 	UID           int
 	GID           int
 	Args          []string
@@ -26,6 +28,7 @@ var ExecFlag struct {
 	Socket        string
 	SocketTimeout time.Duration
 	AutoExit      bool
+	Root          bool
 }
 
 const ExecCommandHelp = `
@@ -54,9 +57,9 @@ const ExecCommandHelp = `
 挂载标志默认为bind或rbind，文件系统类型默认为none
 
 支持以下挂载标志：
-active async bind rbind dirsync invalidate i_version kernmount mandlock mgc_msk mgc_val 
-move noatime nodev nodiratime noexec nosuid nouser posixacl private rdonly rec relatime 
-remount rmt_mask shared silent slave strictatime sync synchronous unbindable
+active async bind rbind dirsync invalidate i_version kernmount mandlock move noatime
+nodev nodiratime noexec nosuid nouser posixacl private rdonly rec relatime remount shared
+silent slave strictatime sync synchronous unbindable
 
 ### 合并挂载
 ll-killer额外支持merge合并挂载类型，用于在没有内核overlapfs或fuse模块支持的情况下堆叠文件系统。
@@ -90,6 +93,10 @@ func GetExecArgs() []string {
 
 	if ExecFlag.RootFS != "" {
 		args = append(args, "--rootfs", ExecFlag.RootFS)
+	}
+
+	if ExecFlag.Root {
+		args = append(args, "--root")
 	}
 
 	if ExecFlag.Socket != "" {
@@ -146,8 +153,8 @@ func ExecSystem() {
 	}
 }
 func ExecShell() {
-	if ExecFlag.UID == 0 && ExecFlag.GID == 0 {
-		Exec(BuildFlag.Args...)
+	if ExecFlag.UID == 0 && ExecFlag.GID == 0 || ExecFlag.Root {
+		Exec(ExecFlag.Args...)
 		return
 	}
 	err := SwitchTo("ExecSystem", &SwitchFlags{
@@ -161,7 +168,7 @@ func ExecShell() {
 }
 func MountFileSystem() {
 	Debug("MountFileSystem")
-	overlayFs := false
+	isFuseOverlayFs := false
 	for _, mount := range ExecFlag.Mounts {
 		opt := ParseMountOption(mount)
 		err := opt.Mount()
@@ -169,7 +176,7 @@ func MountFileSystem() {
 			log.Println(err)
 		}
 		if opt.FSType == FuseOverlayFSType {
-			overlayFs = true
+			isFuseOverlayFs = true
 		}
 	}
 
@@ -180,7 +187,7 @@ func MountFileSystem() {
 			log.Fatalln(err)
 		}
 
-		if overlayFs {
+		if isFuseOverlayFs {
 			err = SwitchTo("PivotRootSystem", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
 		} else {
 			err = MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
@@ -188,6 +195,9 @@ func MountFileSystem() {
 				log.Fatalln(err)
 			}
 			err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
+			if err != nil {
+				log.Fatalln("PivotRoot:", err)
+			}
 		}
 		if err != nil {
 			log.Fatalln(err)
@@ -246,11 +256,14 @@ func CreateExecCommand() *cobra.Command {
 
 	// cmd.Flags().StringSliceVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
 	cmd.Flags().StringArrayVar(&ExecFlag.Mounts, "mount", []string{}, "source:target:[flags:[fstype:[option]]]")
+	// cmd.Flags().StringArrayVar(&ExecFlag.UidMappings, "uidmapping", []string{}, "source:target:[flags:[fstype:[option]]]")
+	// cmd.Flags().StringArrayVar(&ExecFlag.GidMappings, "gidmapping", []string{}, "source:target:[flags:[fstype:[option]]]")
 	cmd.Flags().IntVar(&ExecFlag.UID, "uid", os.Getuid(), "用户ID")
 	cmd.Flags().IntVar(&ExecFlag.GID, "gid", os.Getuid(), "用户组ID")
 	cmd.Flags().StringVar(&ExecFlag.Socket, "socket", "", "可重入终端通信套接字,指定相同的套接字将重用已启动的环境")
 	cmd.Flags().StringVar(&ExecFlag.RootFS, "rootfs", "", "合并的根目录位置")
 	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
+	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
 	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
 	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
 	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
