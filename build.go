@@ -149,6 +149,10 @@ func MountOverlay() {
 			Source: "apt.conf.d",
 			Target: lowerDir + "/etc/apt/apt.conf.d",
 		},
+		{
+			Source: "auth.conf.d",
+			Target: lowerDir + "/etc/apt/auth.conf.d",
+		},
 	})
 	if err != nil {
 		log.Fatalln("MountAll:", err)
@@ -194,6 +198,10 @@ func MountOverlay() {
 		{
 			Source: tmpRootFS + "/tmp",
 			Target: path.Join(tmpRootFS+mergedDir, "tmp"),
+		},
+		{
+			Source: tmpRootFS + "/sys",
+			Target: path.Join(tmpRootFS+mergedDir, "sys"),
 		},
 		{
 			Source: tmpRootFS + aptDataDir,
