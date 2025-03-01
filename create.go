@@ -46,7 +46,11 @@ func NormalizeVersion(version string) string {
 	re := regexp.MustCompile(`[^\d\.]+`)
 	chunks := strings.SplitN(version, ".", 4)
 	for index, chunk := range chunks {
-		chunks[index] = strings.TrimLeft(strings.TrimSpace(re.ReplaceAllString(chunk, "")), "0")
+		version := strings.TrimLeft(strings.TrimSpace(re.ReplaceAllString(chunk, "")), "0")
+		if version == "" {
+			version = "0"
+		}
+		chunks[index] = version
 	}
 	for len(chunks) < 4 {
 		chunks = append(chunks, "0")
