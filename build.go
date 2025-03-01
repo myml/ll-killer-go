@@ -113,7 +113,12 @@ func MountOverlay() {
 	workDir := path.Join(overlayDir, WorkDirName)
 	mergedDir := path.Join(overlayDir, MergedDirName)
 	cwdRootFSPivoted := fmt.Sprint(BuildFlag.RootFS, tmpRootFS)
-	err := MkdirAlls([]string{tmpRootFS, upperDir, lowerDir, workDir, mergedDir}, 0755)
+	err := MkdirAlls([]string{
+		tmpRootFS, upperDir, lowerDir, workDir,
+		mergedDir,
+		aptCacheDir,
+		aptDataDir,
+	}, 0755)
 	if err != nil {
 		log.Fatalln(err)
 	}
