@@ -1,7 +1,8 @@
 #!/bin/bash
 if [ -z "$ENV_SETUPED" ];then
     export ENV_SETUPED=1
-    export ENTRYPOINT=${ENTRYPOINT:-entrypoint.sh}
+    export ENTRYPOINT_NAME=${ENTRYPOINT_NAME:-entrypoint.sh}
+    export ENTRYPOINT=${ENTRYPOINT:-/opt/apps/$LINGLONG_APPID/files/$ENTRYPOINT_NAME}
     export KILLER_EXEC=${KILLER_EXEC:-$(which ll-killer)}
     export PATH=$PATH:$(dirname $0)
     

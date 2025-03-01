@@ -7,7 +7,7 @@ setup-filesystem.sh
 echo "[复制必要文件]"
 test -e "fuse-overlayfs"&&cp -avf "fuse-overlayfs" "$PREFIX"
 cp -avf "$KILLER_EXEC" "$PREFIX/ll-killer"
-cp -avf "build-aux/$ENTRYPOINT" "$PREFIX"
+cp -avf "build-aux/$ENTRYPOINT_NAME" "$PREFIX"
 
 echo "[调整文件布局]"
 mv "$PREFIX/usr/share" "$PREFIX/share" || mkdir -p $PREFIX/share
