@@ -42,6 +42,11 @@ const (
 	FuseOverlayFSType = "fuse-overlayfs"
 )
 
+var (
+	Version   = "unknown"
+	BuildTime = "unknown"
+)
+
 var GlobalFlag = struct {
 	Debug             bool
 	FuseOverlayFS     string
@@ -192,6 +197,9 @@ func SwitchTo(next string, flags *SwitchFlags) error {
 func RunCommand(name string, args ...string) error {
 	Debug("RunCommand", name, args)
 	cmd := exec.Command(name, args...)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Pdeathsig: syscall.SIGTERM,
+	}
 	cmd.Env = os.Environ()
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
