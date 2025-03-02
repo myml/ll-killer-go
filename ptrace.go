@@ -27,7 +27,7 @@ const PtraceCommandHelp = `
 `
 
 func Ptrace(self string, args []string) {
-	args = append([]string{self, "ptrace"}, args...)
+	args = append([]string{self, "ptrace", "--"}, args...)
 	Exec(args...)
 }
 func PtraceMain(cmd *cobra.Command, args []string) error {
