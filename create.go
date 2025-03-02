@@ -63,9 +63,11 @@ apt show app >pkg.info
 <program> create --id appId --from pkg.info
 `
 
+// TODO: 单元测试
 func NormalizeVersion(version string) string {
-	re := regexp.MustCompile(`[^\d\.]+`)
+	re := regexp.MustCompile(`\D`)
 	chunks := strings.SplitN(version, ".", 4)
+	log.Println(chunks)
 	for index, chunk := range chunks {
 		version := strings.TrimLeft(strings.TrimSpace(re.ReplaceAllString(chunk, "")), "0")
 		if version == "" {
@@ -76,6 +78,7 @@ func NormalizeVersion(version string) string {
 	for len(chunks) < 4 {
 		chunks = append(chunks, "0")
 	}
+	log.Println(chunks)
 	return strings.Join(chunks, ".")
 }
 func SetupPackageMetadata(cmd *cobra.Command) error {
