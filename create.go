@@ -42,6 +42,27 @@ var CreateFlag struct {
 	Extend   string
 }
 
+const CreateCommandDescription = `创建一个玲珑应用项目，包括：
+- 生成 linglong.yaml 配置文件
+- 创建 build-aux 目录并填充辅助构建脚本
+- 生成 apt.conf.d 和 sources.list.d 以支持包管理
+- 自动执行一次 build 以初始化构建环境
+
+注意：
+- 如果 linglong.yaml 是手动创建的，需要手动运行 ll-builder build 进行初始化。
+- 在未初始化的情况下，build 命令中的严格模式不可用。
+- 关于辅助脚本的内容，请查看build-aux子命令帮助。
+
+`
+const CreateCommandHelp = `
+# 在当前目录创建一个id为appId的项目
+<program> create --id appId
+
+# 从apt show的信息中提取字段，并创建项目
+apt show app >pkg.info
+<program> create --id appId --from pkg.info
+`
+
 func NormalizeVersion(version string) string {
 	re := regexp.MustCompile(`[^\d\.]+`)
 	chunks := strings.SplitN(version, ".", 4)
@@ -207,8 +228,10 @@ func CreateMain(cmd *cobra.Command, args []string) error {
 func CreateCreateCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
-		Use:   "create",
-		Short: "创建模板项目",
+		Use:     "create",
+		Short:   "创建模板项目",
+		Example: BuildHelpMessage(CreateCommandHelp),
+		Long:    BuildHelpMessage(CreateCommandDescription),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitWith(CreateMain(cmd, args))
 		},

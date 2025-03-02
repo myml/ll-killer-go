@@ -31,10 +31,12 @@ var BuildFlag struct {
 	Args        []string
 }
 
+const BuildCommandDescription = `进入玲珑构建环境，可执行 apt 安装等构建操作。`
 const BuildCommandHelp = `
-此命令用于构建或进入构建环境，配置并执行与运行时环境一致的构建过程。
+# 直接运行 ll-killer build 进入交互式构建环境
+<program> build
 
-# 使用默认选项进入构建环境shell
+# 使用 ll-killer build -- <命令> 直接执行指定构建命令
 <program> build
 
 # 使用 fuse-overlayfs 进行构建，指定 fuse-overlayfs 命令路径
@@ -274,8 +276,10 @@ func CreateBuildCommand() *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "build",
-		Short: "构建或进入构建环境",
+		Use:     "build",
+		Short:   "构建或进入构建环境",
+		Long:    BuildHelpMessage(BuildCommandDescription),
+		Example: BuildHelpMessage(BuildCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitWith(BuildMain(cmd, args))
 		},
