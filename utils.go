@@ -535,6 +535,10 @@ func ExitWith(err error, v ...any) {
 	if errors.As(err, &exitErr) {
 		os.Exit(exitErr.ExitCode())
 	}
+	var reply *PtyExecReply
+	if errors.As(err, &reply) {
+		os.Exit(reply.ExitCode)
+	}
 	log.Fatalln(err, v)
 }
 

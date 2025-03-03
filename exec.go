@@ -7,6 +7,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -126,12 +127,13 @@ func GetExecArgs() []string {
 	}
 	return args
 }
-func GetChannelFlags() *ChannelFlags {
-	cflags := NewChannelFlags()
-	cflags.Unix = ExecFlag.Socket
-	cflags.Timeout = ExecFlag.SocketTimeout
-	cflags.AutoExit = ExecFlag.AutoExit
-	return cflags
+
+func NewPtyFromFlags() *Pty {
+	return &Pty{
+		Socket:   ExecFlag.Socket,
+		Timeout:  ExecFlag.SocketTimeout,
+		AutoExit: ExecFlag.AutoExit,
+	}
 }
 func PivotRootSystem() {
 	Debug("PivotRootSystem")
@@ -151,8 +153,8 @@ func PivotRootSystem() {
 func ExecSystem() {
 	Debug("ExecSystem")
 	if ExecFlag.Socket != "" {
-		cflags := GetChannelFlags()
-		cflags.StartServer()
+		pty := NewPtyFromFlags()
+		pty.Serve()
 	} else {
 		Exec(ExecFlag.Args...)
 	}
@@ -231,20 +233,29 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 	if !reexec.Init() {
 		if ExecFlag.Socket != "" {
 			var signal chan error = make(chan error)
-			cflags := GetChannelFlags()
-			cflags.Timeout = 0
-			err := cflags.StartClient(ExecFlag.Args)
+			cwd, err := os.Getwd()
 			if err != nil {
+				return err
+			}
+			pty := NewPtyFromFlags()
+			pty.Timeout = 0
+			args := &PtyExecArgs{
+				Args: args,
+				Dir:  cwd,
+				Env:  os.Environ(),
+			}
+			err = pty.Call(args)
+			if !errors.Is(err, &PtyExecReply{}) {
 				go func() {
 					signal <- StartMountFileSystem()
 				}()
 				go func() {
-					cflags.Timeout = ExecFlag.SocketTimeout
-					signal <- cflags.StartClient(ExecFlag.Args)
+					pty.Timeout = ExecFlag.SocketTimeout
+					signal <- pty.Call(args)
 				}()
 				return <-signal
 			}
-			return nil
+			return err
 		} else {
 			return StartMountFileSystem()
 		}
