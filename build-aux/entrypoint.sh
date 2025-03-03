@@ -26,7 +26,6 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --mount "/tmp:/run/app.rootfs/tmp:rbind" \
         --mount "/home:/run/app.rootfs/home:rbind" \
         --mount "/root:/run/app.rootfs/root:rbind" \
-        --mount "/opt:/run/app.rootfs/opt:rbind" \
         --rootfs /run/app.rootfs \
         --socket=/run/app.unix \
         -- "${@:-bash}"
@@ -41,7 +40,6 @@ exec $APP_DIR/ll-killer exec \
     --mount "/tmp:/run/app.rootfs/tmp:rbind" \
     --mount "/home:/run/app.rootfs/home:rbind" \
     --mount "/root:/run/app.rootfs/root:rbind" \
-    --mount "/opt:/run/app.rootfs/opt:rbind" \
     --socket=/run/app.unix \
     --rootfs=/run/app.rootfs \
     -- "${@:-bash}"
