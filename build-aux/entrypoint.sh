@@ -26,11 +26,18 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --rootfs /run/app.rootfs \
         --socket=/run/app.unix \
         -- "${@:-bash}"
-else 
-    exec $APP_DIR/ll-killer exec \
-        --mount "$APP_DIR/share:$APP_DIR/usr/share:rbind" \
-        --mount "/+$APP_DIR:/run/app.rootfs::merge" \
-        --socket=/run/app.unix \
-        --rootfs=/run/app.rootfs \
-        -- "${@:-bash}"
 fi
+exec $APP_DIR/ll-killer exec \
+    --mount "$APP_DIR/share:$APP_DIR/usr/share:rbind" \
+    --mount "/+$APP_DIR:/run/app.rootfs::merge" \
+    --mount "/run/host/rootfs/dev:/run/app.rootfs/dev:rbind" \
+    --mount "/proc:/run/app.rootfs/proc:rbind" \
+    --mount "/run:/run/app.rootfs/run:rbind" \
+    --mount "/sys:/run/app.rootfs/sys:rbind" \
+    --mount "/tmp:/run/app.rootfs/tmp:rbind" \
+    --mount "/home:/run/app.rootfs/home:rbind" \
+    --mount "/root:/run/app.rootfs/root:rbind" \
+    --mount "/opt:/run/app.rootfs/opt:rbind" \
+    --socket=/run/app.unix \
+    --rootfs=/run/app.rootfs \
+    -- "${@:-bash}"
