@@ -100,16 +100,16 @@ func (s *Channel) ParseArgs() ([]string, error) {
 	return args, nil
 }
 
-func (s *Channel) Serve() error {
+func (s *Channel) serve() error {
 	args, err := s.ParseArgs()
-	Debug("StartServer:ParseArgs", err)
+	Debug("Server:ParseArgs", err)
 	if err != nil {
 		return err
 	}
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Env = os.Environ()
 	ptmx, err := pty.Start(cmd)
-	Debug("StartServer:pty:Start", err)
+	Debug("Server:pty:Start", err)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (s *Channel) Serve() error {
 		_, _ = ptmx.WriteTo(s.io)
 	}()
 	err = cmd.Wait()
-	Debug("StartServer:cmd:Wait", err)
+	Debug("Server:cmd:Wait", err)
 	return nil
 }
 func CreateChannel(conn net.Conn) *Channel {
@@ -141,15 +141,15 @@ type ChannelFlags struct {
 }
 
 func (flags *ChannelFlags) StartServer() error {
-	Debug("StartServer")
+	Debug("Server")
 	var signal chan int = make(chan int)
 	socketPath := flags.Unix
 	if err := os.Remove(socketPath); err != nil && !os.IsNotExist(err) {
-		Debug("StartServer:remove", err)
+		Debug("Server:remove", err)
 		return err
 	}
 	listener, err := net.Listen("unix", socketPath)
-	Debug("StartServer:Listen", err)
+	Debug("Server:Listen", err)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func (flags *ChannelFlags) StartServer() error {
 	go func() {
 		for {
 			conn, err := listener.Accept()
-			Debug("StartServer:Accept", err)
+			Debug("Server:Accept", err)
 			atomic.AddInt32(&flags.connectionTimes, 1)
 			if err != nil {
 				signal <- 1
@@ -176,13 +176,13 @@ func (flags *ChannelFlags) StartServer() error {
 				continue
 			}
 			go func() {
-				Debug("StartServer:handle")
+				Debug("Server:handle")
 				defer conn.Close()
 				atomic.AddInt32(&flags.connectionCount, 1)
 				channel := CreateChannel(conn)
-				Debug("StartServer:CreateChannel")
-				err := channel.Serve()
-				Debug("StartServer:Serve", err)
+				Debug("Server:CreateChannel")
+				err := channel.serve()
+				Debug("Server:Serve", err)
 				atomic.AddInt32(&flags.connectionCount, -1)
 				signal <- 1
 			}()
@@ -192,13 +192,13 @@ func (flags *ChannelFlags) StartServer() error {
 		<-signal
 		if flags.AutoExit {
 			if atomic.LoadInt32(&flags.connectionTimes) > 0 && atomic.LoadInt32(&flags.connectionCount) == 0 {
-				Debug("StartServer:Exit:AutoExit")
+				Debug("Server:Exit:AutoExit")
 				return nil
 			}
 		}
 		if flags.Timeout != 0 {
 			if atomic.LoadInt32(&flags.connectionTimes) == 0 {
-				Debug("StartServer:Exit:Timeout")
+				Debug("Server:Exit:Timeout")
 				return nil
 			}
 		}
@@ -221,9 +221,9 @@ func (flags *ChannelFlags) connect() (net.Conn, error) {
 	}
 }
 func (flags *ChannelFlags) StartClient(args []string) error {
-	Debug("StartClient")
+	Debug("Client")
 	conn, err := flags.connect()
-	Debug("StartClient:connect", err)
+	Debug("Client:connect", err)
 	if err != nil {
 		return err
 	}
@@ -235,12 +235,12 @@ func (flags *ChannelFlags) StartClient(args []string) error {
 		channel.sendArgv(item)
 	}
 	err = channel.sendArgvEnd()
-	Debug("StartClient:sendArgvEnd", err)
+	Debug("Client:sendArgvEnd", err)
 	if err != nil {
 		return err
 	}
 	err = channel.run()
-	Debug("StartClient:run", err)
+	Debug("Client:run", err)
 	return err
 }
 
