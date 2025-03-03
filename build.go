@@ -10,7 +10,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"ll-killer/ptrace"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -96,7 +95,7 @@ func MountOverlayStage2() {
 	tmpRootFS := BuildFlag.TmpRootFS
 	err := syscall.PivotRoot(tmpRootFS+mergedDir, tmpRootFS+mergedDir+BuildFlag.RootFS)
 	if err != nil {
-		log.Fatalln("PivotRoot2:", err)
+		ExitWith(err, "PivotRoot2")
 	}
 	if BuildFlag.Ptrace && ptrace.IsSupported {
 		Ptrace(BuildFlag.Self, BuildFlag.Args)
@@ -122,16 +121,16 @@ func MountOverlay() {
 		aptDataDir,
 	}, 0755)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 	err = MountBind(BuildFlag.RootFS, BuildFlag.RootFS, 0)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 
 	err = MountBind("/", tmpRootFS, 0)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 
 	err = MountAll([]MountOption{
@@ -157,11 +156,11 @@ func MountOverlay() {
 		},
 	})
 	if err != nil {
-		log.Fatalln("MountAll:", err)
+		ExitWith(err, "MountAll")
 	}
 	err = syscall.PivotRoot(BuildFlag.RootFS, cwdRootFSPivoted)
 	if err != nil {
-		log.Fatalln("PivotRoot:", BuildFlag.RootFS, cwdRootFSPivoted, err)
+		ExitWith(err, "PivotRoot", BuildFlag.RootFS, cwdRootFSPivoted)
 	}
 	fuseOverlayFSOption := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s,squash_to_root",
 		tmpRootFS+lowerDir,
@@ -174,7 +173,7 @@ func MountOverlay() {
 	}
 	err = RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
 	if err != nil {
-		log.Fatalln("fuse-overlayfs:", fuseOverlayFSOption, tmpRootFS+mergedDir, err)
+		ExitWith(err, "fuse-overlayfs:", fuseOverlayFSOption, tmpRootFS+mergedDir)
 	}
 	err = MountAll([]MountOption{
 		{
@@ -215,7 +214,7 @@ func MountOverlay() {
 		},
 	})
 	if err != nil {
-		log.Fatalln("MountAll2:", err)
+		ExitWith(err, "MountAll2")
 	}
 	SwitchTo("MountOverlayStage2", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
 }
@@ -240,7 +239,7 @@ func BuildMain(cmd *cobra.Command, args []string) error {
 			for _, item := range strings.Split(BuildFlag.EncodedArgs, ",") {
 				value, err := base64.StdEncoding.DecodeString(item)
 				if err != nil {
-					log.Fatalln(err)
+					ExitWith(err)
 				}
 				args = append(args, string(value))
 			}
@@ -272,7 +271,7 @@ func BuildMain(cmd *cobra.Command, args []string) error {
 func CreateBuildCommand() *cobra.Command {
 	cwd, err := os.Getwd()
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 
 	cmd := &cobra.Command{

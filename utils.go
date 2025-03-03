@@ -9,6 +9,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -17,6 +18,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/go-yaml/yaml"
 	"github.com/moby/sys/reexec"
 )
 
@@ -215,7 +217,7 @@ func DefaultShell() string {
 	return shell
 }
 func ExecRaw(args ...string) error {
-	Debug("Exec", args)
+	Debug("ExecRaw", args)
 	if len(args) == 0 {
 		args = []string{DefaultShell()}
 	}
@@ -231,9 +233,10 @@ func ExecRaw(args ...string) error {
 	return nil
 }
 func Exec(args ...string) {
+	Debug("Exec", args)
 	err := ExecRaw(args...)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 }
 func IsExist(name string) bool {
@@ -524,7 +527,7 @@ func Debug(v ...any) {
 		log.Println(v...)
 	}
 }
-func ExitWith(err error) {
+func ExitWith(err error, v ...any) {
 	if err == nil {
 		os.Exit(0)
 	}
@@ -532,7 +535,7 @@ func ExitWith(err error) {
 	if errors.As(err, &exitErr) {
 		os.Exit(exitErr.ExitCode())
 	}
-	log.Fatalln(err)
+	log.Fatalln(err, v)
 }
 
 func WriteFile(name string, data []byte, perm os.FileMode) error {

@@ -7,7 +7,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"syscall"
 
@@ -41,11 +40,11 @@ func MountAPT() {
 	*/
 	err := os.MkdirAll(AptDir, 0755)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 	err = MkdirAlls([]string{AptDataDir, AptCacheDir, AptConfDir}, 0755)
 	if err != nil {
-		log.Fatalln(err)
+		ExitWith(err)
 	}
 	err = MountAll([]MountOption{
 		{
@@ -81,7 +80,7 @@ func MountAPT() {
 	})
 
 	if err != nil {
-		log.Fatalln("MountAll:", err)
+		ExitWith(err, "MountAll")
 	}
 	Exec(APTFlag.Args...)
 }
