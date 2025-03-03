@@ -16,7 +16,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-yaml/yaml"
+	"github.com/moby/sys/reexec"
 	"github.com/spf13/cobra"
 )
 
@@ -198,34 +198,50 @@ func ParsePackageMetadata(stream io.Reader) (map[string]string, error) {
 	}
 	return metadata, nil
 }
-
-func CreateMain(cmd *cobra.Command, args []string) error {
-	err := embedFilesToDisk(".")
+func SetupKillerExec(target string) error {
+	if IsExist(KillerExec) {
+		log.Printf("skip: %s\n", target)
+		return nil
+	}
+	err := CopyFileIO(reexec.Self(), target)
 	if err != nil {
 		return err
 	}
-
-	SetupPackageMetadata(cmd)
-
+	log.Printf("created: %s\n", target)
+	return nil
+}
+func SetupProject(target string) error {
 	ConfigData.Command[0] = strings.ReplaceAll(ConfigData.Command[0], "<APPID>", ConfigData.Package.ID)
 
-	fs, err := os.Create(kLinglongYaml)
-	if err != nil {
-		return err
-	}
-	encoder := yaml.NewEncoder(fs)
-	err = encoder.Encode(ConfigData)
-	if err != nil {
-		return err
-	}
-	err = encoder.Close()
+	err := DumpYaml(kLinglongYaml, ConfigData)
 	if err != nil {
 		return err
 	}
 	log.Printf("created: %s\n", kLinglongYaml)
+	return nil
+}
+func CreateMain(cmd *cobra.Command, args []string) error {
+
+	if err := embedFilesToDisk("."); err != nil {
+		return err
+	}
+
+	if err := SetupPackageMetadata(cmd); err != nil {
+		return err
+	}
+
+	if err := SetupProject(kLinglongYaml); err != nil {
+		return err
+	}
+
+	if err := SetupKillerExec(KillerExec); err != nil {
+		return err
+	}
+
 	if !CreateFlag.NoBuild {
 		return RunCommand("ll-builder", "build", "--exec", "true")
 	}
+
 	return nil
 }
 func CreateCreateCommand() *cobra.Command {
