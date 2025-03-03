@@ -15,6 +15,7 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
     exec $APP_DIR/ll-killer exec \
         --fuse-overlayfs "$OVERLAY_EXEC" \
         --fuse-overlayfs-args "$OVERLAY_ARGS" \
+        --mount "/dev:/run/app.dev:rbind" \
         --mount "/run/host/rootfs/dev:/dev:rbind" \
         --mount "/:/run/app.oldfs:rbind" \
         --mount "overlay:$APP_DIR/usr/share::fuse-overlayfs:lowerdir=$APP_DIR/share:/run/app.oldfs/usr/share,squash_to_root,static_nlink" \
@@ -26,6 +27,9 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --mount "/tmp:/run/app.rootfs/tmp:rbind" \
         --mount "/home:/run/app.rootfs/home:rbind" \
         --mount "/root:/run/app.rootfs/root:rbind" \
+        --mount "/run/app.dev/pts:/run/app.rootfs/dev/pts:rbind" \
+        --mount "/run/app.dev/shm:/run/app.rootfs/dev/shm:rbind" \
+        --mount "/run/app.dev/mqueue:/run/app.rootfs/dev/mqueue:rbind" \
         --rootfs /run/app.rootfs \
         --socket=/run/app.unix \
         -- "${@:-bash}"
@@ -34,6 +38,9 @@ exec $APP_DIR/ll-killer exec \
     --mount "$APP_DIR/share:$APP_DIR/usr/share:rbind" \
     --mount "/+$APP_DIR:/run/app.rootfs::merge" \
     --mount "/run/host/rootfs/dev:/run/app.rootfs/dev:rbind" \
+    --mount "/dev/pts:/run/app.rootfs/dev/pts:rbind" \
+    --mount "/dev/shm:/run/app.rootfs/dev/shm:rbind" \
+    --mount "/dev/mqueue:/run/app.rootfs/dev/mqueue:rbind" \
     --mount "/proc:/run/app.rootfs/proc:rbind" \
     --mount "/run:/run/app.rootfs/run:rbind" \
     --mount "/sys:/run/app.rootfs/sys:rbind" \
