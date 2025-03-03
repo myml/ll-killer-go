@@ -67,7 +67,6 @@ apt show app >pkg.info
 func NormalizeVersion(version string) string {
 	re := regexp.MustCompile(`\D`)
 	chunks := strings.SplitN(version, ".", 4)
-	log.Println(chunks)
 	for index, chunk := range chunks {
 		version := strings.TrimLeft(strings.TrimSpace(re.ReplaceAllString(chunk, "")), "0")
 		if version == "" {
@@ -78,7 +77,6 @@ func NormalizeVersion(version string) string {
 	for len(chunks) < 4 {
 		chunks = append(chunks, "0")
 	}
-	log.Println(chunks)
 	return strings.Join(chunks, ".")
 }
 func SetupPackageMetadata(cmd *cobra.Command) error {
