@@ -1,6 +1,10 @@
 #!/bin/bash
-APP_DIR=${APP_DIR:-"/opt/apps/$LINGLONG_APPID/files"}
 
+if [ -e ".killer-debug" ];then
+    export KILLER_DEBUG=1
+fi
+
+APP_DIR=${APP_DIR:-"/opt/apps/$LINGLONG_APPID/files"}
 OVERLAY_EXEC_PATH=$APP_DIR/fuse-overlayfs
 if [ ! -e "$OVERLAY_EXEC_PATH" ];then
     OVERLAY_EXEC_PATH=$(which "fuse-overlayfs")
