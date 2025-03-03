@@ -8,7 +8,6 @@ package main
 
 import (
 	"embed"
-	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -36,7 +35,11 @@ build-aux 目录下创建的工具：
 
 `
 
-func embedFilesToDisk(destDir string) error {
+var BuildAuxFlag struct {
+	Force bool
+}
+
+func embedFilesToDisk(destDir string, force bool) error {
 	err := fs.WalkDir(content, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -44,7 +47,7 @@ func embedFilesToDisk(destDir string) error {
 		destPath := filepath.Join(destDir, path)
 
 		if !d.IsDir() {
-			if IsExist(destPath) {
+			if !force && IsExist(destPath) {
 				log.Println("skip:", destPath)
 				return nil
 			}
@@ -53,14 +56,7 @@ func embedFilesToDisk(destDir string) error {
 				return err
 			}
 			defer srcFile.Close()
-
-			destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0755)
-			if err != nil {
-				return err
-			}
-			defer destFile.Close()
-
-			_, err = io.Copy(destFile, srcFile)
+			err = CopyFile(destPath, srcFile, 0755, force)
 			if err != nil {
 				return err
 			}
@@ -78,11 +74,11 @@ func embedFilesToDisk(destDir string) error {
 }
 
 func BuildAuxMain(cmd *cobra.Command, args []string) error {
-	return embedFilesToDisk(".")
+	return embedFilesToDisk(".", BuildAuxFlag.Force)
 }
 
 func CreateBuildAuxCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "build-aux",
 		Short: "创建辅助构建脚本",
 		Long:  BuildAuxCommandHelp,
@@ -90,4 +86,6 @@ func CreateBuildAuxCommand() *cobra.Command {
 			ExitWith(BuildAuxMain(cmd, args))
 		},
 	}
+	cmd.Flags().BoolVar(&BuildAuxFlag.Force, "force", false, "强制覆盖已存在文件")
+	return cmd
 }

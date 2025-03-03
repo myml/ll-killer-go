@@ -38,6 +38,7 @@ type Config struct {
 var ConfigData Config
 var CreateFlag struct {
 	NoBuild  bool
+	Force    bool
 	Metadata string
 	Extend   string
 }
@@ -104,7 +105,7 @@ func SetupPackageMetadata(cmd *cobra.Command) error {
 		ConfigData.Package.Name = metadata["runtime"]
 	}
 	if metadata["apt-sources"] != "" {
-		if !IsExist(SourceListFile) {
+		if CreateFlag.Force || !IsExist(SourceListFile) {
 			re := regexp.MustCompile(`^(http\S+?)\s+(\S+?)/(\S+)`)
 			entries := strings.Split(metadata["apt-sources"], "\n")
 			parsed := []string{}
@@ -130,14 +131,14 @@ func SetupPackageMetadata(cmd *cobra.Command) error {
 				parsed = append(parsed, entry)
 			}
 			if len(parsed) > 0 {
-				log.Printf("created: %s\n", SourceListFile)
-				err := WriteFile(SourceListFile, []byte(strings.Join(parsed, "\n")), 0755)
+				err := WriteFile(SourceListFile, []byte(strings.Join(parsed, "\n")), 0755, CreateFlag.Force)
 				if err != nil {
 					return err
 				}
+				log.Println("created: ", SourceListFile)
 			}
 		} else {
-			log.Printf("skip: %s\n", SourceListFile)
+			log.Println("skip: ", SourceListFile)
 		}
 	}
 	return nil
@@ -197,15 +198,15 @@ func ParsePackageMetadata(stream io.Reader) (map[string]string, error) {
 	return metadata, nil
 }
 func SetupKillerExec(target string) error {
-	if IsExist(KillerExec) {
-		log.Printf("skip: %s\n", target)
+	if !CreateFlag.Force && IsExist(KillerExec) {
+		log.Println("skip: ", target)
 		return nil
 	}
 	err := CopyFileIO(reexec.Self(), target)
 	if err != nil {
 		return err
 	}
-	log.Printf("created: %s\n", target)
+	log.Println("created: ", target)
 	return nil
 }
 func SetupProject(target string) error {
@@ -215,12 +216,12 @@ func SetupProject(target string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("created: %s\n", kLinglongYaml)
+	log.Println("created: ", kLinglongYaml)
 	return nil
 }
 func CreateMain(cmd *cobra.Command, args []string) error {
 
-	if err := embedFilesToDisk("."); err != nil {
+	if err := embedFilesToDisk(".", CreateFlag.Force); err != nil {
 		return err
 	}
 
@@ -264,6 +265,7 @@ func CreateCreateCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ConfigData.Runtime, "runtime", "", "Runtime镜像")
 	cmd.Flags().StringVar(&ConfigData.Build, "build", "build-aux/setup.sh", "构建命令")
 	cmd.Flags().BoolVar(&CreateFlag.NoBuild, "no-build", false, "不自动初始化项目")
+	cmd.Flags().BoolVar(&CreateFlag.Force, "force", false, "强制覆盖已存在文件")
 	cmd.Flags().StringVar(&CreateFlag.Metadata, "from", "", "从APT Package元数据创建(支持apt show)")
 
 	return cmd

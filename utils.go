@@ -545,11 +545,35 @@ func ExitWith(err error, v ...any) {
 	log.Fatalln(append([]any{err}, v)...)
 }
 
-func WriteFile(name string, data []byte, perm os.FileMode) error {
-	if perm&os.FileMode(os.O_EXCL) != 0 && IsExist(name) {
-		return nil
+func OpenFile(destPath string, perm os.FileMode, force bool) (*os.File, error) {
+	flag := 0
+	if force {
+		flag = os.O_EXCL
 	}
-	return os.WriteFile(name, data, perm)
+	destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|flag, 0755)
+	if err != nil {
+		return nil, err
+	}
+	return destFile, nil
+}
+func WriteFile(destPath string, data []byte, perm os.FileMode, force bool) error {
+	destFile, err := OpenFile(destPath, 0755, force)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+	_, err = destFile.Write(data)
+	return err
+}
+
+func CopyFile(destPath string, src io.Reader, perm os.FileMode, force bool) error {
+	dst, err := OpenFile(destPath, 0755, force)
+	if err != nil {
+		return err
+	}
+	defer dst.Close()
+	_, err = io.Copy(dst, src)
+	return err
 }
 func BuildHelpMessage(help string) string {
 	return strings.ReplaceAll(help, "<program>", os.Args[0])
