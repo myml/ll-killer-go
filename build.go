@@ -273,6 +273,10 @@ func CreateBuildCommand() *cobra.Command {
 	if err != nil {
 		ExitWith(err)
 	}
+	execPath, err := os.Executable()
+	if err != nil {
+		ExitWith(err)
+	}
 
 	cmd := &cobra.Command{
 		Use:     "build",
@@ -290,13 +294,13 @@ func CreateBuildCommand() *cobra.Command {
 		cmd.Flags().BoolVar(&BuildFlag.Ptrace, "ptrace", false, "修正系统调用(chown)")
 	}
 	cmd.Flags().StringVar(&BuildFlag.EncodedArgs, "encoded-args", "", "编码后的参数")
-	cmd.Flags().StringVar(&BuildFlag.Self, "self", os.Args[0], "ll-killer路径")
+	cmd.Flags().StringVar(&BuildFlag.Self, "self", execPath, "ll-killer路径")
 	cmd.Flags().BoolVarP(&BuildFlag.Strict, "strict", "x", os.Getenv("LINGLONG_APPID") == "", "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）")
 	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
 	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
 
 	cmd.Flags().MarkHidden("encoded-args")
-	cmd.Flags().MarkHidden("self")
-	cmd.Flags().MarkHidden("cwd")
+	// cmd.Flags().MarkHidden("self")
+	// cmd.Flags().MarkHidden("cwd")
 	return cmd
 }
