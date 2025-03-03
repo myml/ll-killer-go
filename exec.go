@@ -29,6 +29,7 @@ var ExecFlag struct {
 	SocketTimeout time.Duration
 	AutoExit      bool
 	Root          bool
+	NoFail        bool
 }
 
 const ExecCommandHelp = `
@@ -97,6 +98,10 @@ func GetExecArgs() []string {
 
 	if ExecFlag.Root {
 		args = append(args, "--root")
+	}
+
+	if ExecFlag.NoFail {
+		args = append(args, "--no-fail")
 	}
 
 	if ExecFlag.Socket != "" {
@@ -173,6 +178,9 @@ func MountFileSystem() {
 		opt := ParseMountOption(mount)
 		err := opt.Mount()
 		if err != nil {
+			if ExecFlag.NoFail {
+				ExitWith(err)
+			}
 			log.Println(err)
 		}
 		if opt.FSType == FuseOverlayFSType {
@@ -263,6 +271,7 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().StringVar(&ExecFlag.Socket, "socket", "", "可重入终端通信套接字,指定相同的套接字将重用已启动的环境")
 	cmd.Flags().StringVar(&ExecFlag.RootFS, "rootfs", "", "合并的根目录位置")
 	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
+cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
 	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
 	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
