@@ -533,13 +533,16 @@ func ExitWith(err error, v ...any) {
 	}
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
+		if len(v) > 0 {
+			log.Println(v...)
+		}
 		os.Exit(exitErr.ExitCode())
 	}
 	var reply *PtyExecReply
 	if errors.As(err, &reply) {
 		os.Exit(reply.ExitCode)
 	}
-	log.Fatalln(err, v)
+	log.Fatalln(append([]any{err}, v)...)
 }
 
 func WriteFile(name string, data []byte, perm os.FileMode) error {
