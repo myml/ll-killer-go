@@ -5,7 +5,7 @@ echo "[准备文件系统]"
 setup-filesystem.sh
 
 echo "[复制必要文件]"
-test -e "fuse-overlayfs"&&cp -avf "fuse-overlayfs" "$PREFIX"
+test -e "build-aux/fuse-overlayfs"&&cp -avf "build-aux/fuse-overlayfs" "$PREFIX"
 cp -avf "$KILLER_EXEC" "$PREFIX/ll-killer"
 cp -avf "build-aux/$ENTRYPOINT_NAME" "$PREFIX"
 
