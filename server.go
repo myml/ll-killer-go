@@ -168,8 +168,8 @@ func (flags *ChannelFlags) StartServer() error {
 			conn, err := listener.Accept()
 			Debug("StartServer:Accept", err)
 			atomic.AddInt32(&flags.connectionTimes, 1)
-			signal <- 1
 			if err != nil {
+				signal <- 1
 				if errors.Is(err, net.ErrClosed) {
 					break
 				}
