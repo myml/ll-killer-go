@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/moby/sys/reexec"
 	"github.com/spf13/cobra"
 )
 
@@ -85,7 +86,18 @@ func embedFilesToDisk(destDir string, force bool) error {
 	log.Println("created:", "Makefile")
 	return nil
 }
-
+func SetupKillerExec(target string) error {
+	if !CreateFlag.Force && IsExist(KillerExec) {
+		log.Println("skip:", target)
+		return nil
+	}
+	err := CopyFileIO(reexec.Self(), target)
+	if err != nil {
+		return err
+	}
+	log.Println("created:", target)
+	return nil
+}
 func ExtractBuildAuxFiles(force bool) error {
 	if err := embedFilesToDisk(".", force); err != nil {
 		return err
