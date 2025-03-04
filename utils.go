@@ -224,11 +224,11 @@ func ExecRaw(args ...string) error {
 
 	binary, err := exec.LookPath(args[0])
 	if err != nil {
-		return fmt.Errorf("%s:%s", binary, err)
+		return fmt.Errorf("%s: %s", binary, err)
 	}
 
 	if err := syscall.Exec(binary, args, os.Environ()); err != nil {
-		return fmt.Errorf("%s:%s", binary, err)
+		return fmt.Errorf("%s: %s", binary, err)
 	}
 	return nil
 }
@@ -542,7 +542,7 @@ func ExitWith(err error, v ...any) {
 	if errors.As(err, &reply) {
 		os.Exit(reply.ExitCode)
 	}
-	log.Fatalln(append([]any{err}, v)...)
+	log.Fatalln(append([]any{err}, v...)...)
 }
 
 func OpenFile(destPath string, perm os.FileMode, force bool) (*os.File, error) {
