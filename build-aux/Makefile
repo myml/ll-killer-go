@@ -1,4 +1,4 @@
-.PHONY: all create apt-update-pkg apt-install extra-apt-install commit export config clean clean-ll clean-fs clean-apt
+.PHONY: all create apt-update-pkg apt-install extra-apt-install commit export config clean clean-ll clean-fs clean-apt project
 
 -include config.mk
 
@@ -11,7 +11,6 @@ ifeq ($(PKG),)
   $(error "请指定BASE变量，如make BASE=org.deepin.base/23.1.0")
 endif
 
-CACHE_FILE := linglong/apt/cache/apt/pkgcache.bin
 KILLER ?= $(if $(wildcard ll-killer),./ll-killer,ll-killer)
 export KILLER_BUILD_ARGS ?=
 KILLER_CREATE_ARGS ?= 
@@ -22,6 +21,7 @@ create: $(PKG)/linglong.yaml
 apt-update-pkg: $(PKG)/apt-update.log
 apt-install-extra: $(PKG)/apt-install-extra.log
 config: config.mk
+project: linglong.yaml
 
 config.mk:
 	@echo "[生成config.mk]"
@@ -35,11 +35,11 @@ apt.conf.d/ll-killer.conf: config.mk
 	@echo "[创建辅助脚本]"
 	$(KILLER) build-aux
 
-$(CACHE_FILE): sources.list apt.conf.d/ll-killer.conf
+apt-update.log: sources.list
 	@echo "[更新APT缓存]"
-	$(KILLER) apt -- apt update -y
+	$(KILLER) apt -- apt update -y | tee apt-update.log;
 
-pkg.info: $(CACHE_FILE)
+pkg.info: apt-update.log
 	@echo "[获取包元数据]"
 	$(KILLER) apt -- apt show $(PKG) > pkg.info
 
@@ -48,7 +48,7 @@ linglong.yaml deps.list: pkg.info
 	$(KILLER) create --from pkg.info --id "$(APPID)" $(KILLER_CREATE_ARGS) 
 	touch deps.list
 
-apt-install.log: $(CACHE_FILE) deps.list
+apt-install.log: apt-update.log deps.list
 	@echo "[将包安装至构建环境]"
 	$(KILLER) build $(KILLER_BUILD_ARGS) --ptrace -- apt install -y $(PKG) $(shell cat deps.list) | tee apt-install.log
 
