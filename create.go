@@ -221,7 +221,7 @@ func SetupProject(target string) error {
 }
 func CreateMain(cmd *cobra.Command, args []string) error {
 
-	if err := embedFilesToDisk(".", CreateFlag.Force); err != nil {
+	if err := ExtractBuildAuxFiles(CreateFlag.Force); err != nil {
 		return err
 	}
 
@@ -230,10 +230,6 @@ func CreateMain(cmd *cobra.Command, args []string) error {
 	}
 
 	if err := SetupProject(kLinglongYaml); err != nil {
-		return err
-	}
-
-	if err := SetupKillerExec(KillerExec); err != nil {
 		return err
 	}
 

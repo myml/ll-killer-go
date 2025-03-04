@@ -86,8 +86,18 @@ func embedFilesToDisk(destDir string, force bool) error {
 	return nil
 }
 
+func ExtractBuildAuxFiles(force bool) error {
+	if err := embedFilesToDisk(".", force); err != nil {
+		return err
+	}
+	if err := SetupKillerExec(KillerExec); err != nil {
+		return err
+	}
+	return nil
+}
+
 func BuildAuxMain(cmd *cobra.Command, args []string) error {
-	return embedFilesToDisk(".", BuildAuxFlag.Force)
+	return ExtractBuildAuxFiles(BuildAuxFlag.Force)
 }
 
 func CreateBuildAuxCommand() *cobra.Command {
