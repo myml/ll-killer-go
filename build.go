@@ -173,7 +173,7 @@ func MountOverlay() {
 	}
 	err = RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
 	if err != nil {
-		ExitWith(err, "fuse-overlayfs:", fuseOverlayFSOption, tmpRootFS+mergedDir)
+		ExitWith(err, "fuse-overlayfs:", GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs)
 	}
 	err = MountAll([]MountOption{
 		{
