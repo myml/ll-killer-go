@@ -547,10 +547,10 @@ func ExitWith(err error, v ...any) {
 
 func OpenFile(destPath string, perm os.FileMode, force bool) (*os.File, error) {
 	flag := 0
-	if force {
+	if !force {
 		flag = os.O_EXCL
 	}
-	destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|flag, 0755)
+	destFile, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC|flag, 0755)
 	if err != nil {
 		return nil, err
 	}
