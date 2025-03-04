@@ -10,5 +10,5 @@ LDFLAGS := -X "main.Version=$(VERSION)" -X "main.BuildTime=$(BUILDTIME)"
 GO_BUILD := $(GO) build $(TRIMPATH) $(GO_BUILDMODE_STATIC) \
 	$(EXTRA_FLAGS) -ldflags "$(LDFLAGS) $(LDFLAGS_STATIC) $(EXTRA_LDFLAGS)"
 
-ll-killer: *.go build-aux/*
+ll-killer: *.go build-aux/* ptrace/*.go apt.conf.d/*
 	$(GO_BUILD) -o $@ .
