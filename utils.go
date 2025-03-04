@@ -240,7 +240,7 @@ func Exec(args ...string) {
 	}
 }
 func IsExist(name string) bool {
-	_, err := os.Stat(name)
+	_, err := os.Lstat(name)
 	return !os.IsNotExist(err)
 }
 
@@ -573,6 +573,13 @@ func CopyFile(destPath string, src io.Reader, perm os.FileMode, force bool) erro
 	}
 	defer dst.Close()
 	_, err = io.Copy(dst, src)
+	return err
+}
+func CopySymlink(destPath string, src string, force bool) error {
+	if force && IsExist(destPath) {
+		os.Remove(destPath)
+	}
+	err := os.Symlink(src, destPath)
 	return err
 }
 func BuildHelpMessage(help string) string {

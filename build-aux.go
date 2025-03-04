@@ -8,6 +8,7 @@ package main
 
 import (
 	"embed"
+	"errors"
 	"io/fs"
 	"log"
 	"os"
@@ -70,7 +71,19 @@ func embedFilesToDisk(destDir string, force bool) error {
 		}
 		return nil
 	})
-	return err
+	if err != nil {
+		return err
+	}
+	err = CopySymlink("Makefile", "build-aux/Makefile", force)
+	if err != nil {
+		if errors.Is(err, os.ErrExist) {
+			log.Println("skip:", "Makefile")
+			return nil
+		}
+		return err
+	}
+	log.Println("created:", "Makefile")
+	return nil
 }
 
 func BuildAuxMain(cmd *cobra.Command, args []string) error {
