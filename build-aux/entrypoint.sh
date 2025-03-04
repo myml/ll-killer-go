@@ -1,9 +1,14 @@
 #!/bin/bash
 
+if [ -n "$KILLER_ENTRYPOINT" ];then
+    exec "${@:-bash}"
+    exit 1
+fi
+
 if [ -e ".killer-debug" ];then
     export KILLER_DEBUG=1
 fi
-
+export KILLER_ENTRYPOINT="/entrypoint.sh"
 APP_DIR=${APP_DIR:-"/opt/apps/$LINGLONG_APPID/files"}
 OVERLAY_EXEC_PATH=$APP_DIR/fuse-overlayfs
 if [ ! -e "$OVERLAY_EXEC_PATH" ];then
@@ -32,7 +37,7 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --mount "/run/app.dev/mqueue:/run/app.rootfs/dev/mqueue:rbind" \
         --rootfs /run/app.rootfs \
         --socket=/run/app.unix \
-        -- "${@:-bash}"
+        -- "$KILLER_ENTRYPOINT" "${@:-bash}"
 fi
 exec $APP_DIR/ll-killer exec \
     --mount "$APP_DIR/share:$APP_DIR/usr/share:rbind" \
@@ -49,4 +54,4 @@ exec $APP_DIR/ll-killer exec \
     --mount "/root:/run/app.rootfs/root:rbind" \
     --socket=/run/app.unix \
     --rootfs=/run/app.rootfs \
-    -- "${@:-bash}"
+    -- "$KILLER_ENTRYPOINT" "${@:-bash}"
