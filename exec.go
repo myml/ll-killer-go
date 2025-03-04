@@ -31,6 +31,7 @@ var ExecFlag struct {
 	AutoExit      bool
 	Root          bool
 	NoFail        bool
+	NoBindRootFS  bool
 }
 
 const ExecCommandHelp = `
@@ -105,6 +106,10 @@ func GetExecArgs() []string {
 		args = append(args, "--no-fail")
 	}
 
+	if ExecFlag.NoBindRootFS {
+		args = append(args, "--no-bind-rootfs")
+	}
+
 	if ExecFlag.Socket != "" {
 		args = append(args, "--socket", ExecFlag.Socket)
 	}
@@ -137,14 +142,15 @@ func NewPtyFromFlags() *Pty {
 }
 func PivotRootSystem() {
 	Debug("PivotRootSystem")
-	err := MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
-	if err != nil {
-		ExitWith(err)
+	if !ExecFlag.NoBindRootFS {
+		err := MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
+		if err != nil {
+			ExitWith(err)
+		}
 	}
 	oldRootFS := fmt.Sprint(ExecFlag.RootFS, ExecFlag.RootFS)
 	Debug("PivotRoot", ExecFlag.RootFS, oldRootFS)
-	err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
-	if err != nil {
+	if err := syscall.PivotRoot(ExecFlag.RootFS, oldRootFS); err != nil {
 		ExitWith(err)
 	}
 	ExecShell()
@@ -199,18 +205,11 @@ func MountFileSystem() {
 
 		if isFuseOverlayFs {
 			err = SwitchTo("PivotRootSystem", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
-		} else {
-			err = MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
 			if err != nil {
 				ExitWith(err)
 			}
-			err = syscall.PivotRoot(ExecFlag.RootFS, oldRootFS)
-			if err != nil {
-				ExitWith(err, "PivotRoot:")
-			}
-		}
-		if err != nil {
-			ExitWith(err)
+		} else {
+			PivotRootSystem()
 		}
 	}
 	ExecShell()
@@ -281,6 +280,7 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().IntVar(&ExecFlag.GID, "gid", os.Getuid(), "用户组ID")
 	cmd.Flags().StringVar(&ExecFlag.Socket, "socket", "", "可重入终端通信套接字,指定相同的套接字将重用已启动的环境")
 	cmd.Flags().StringVar(&ExecFlag.RootFS, "rootfs", "", "合并的根目录位置")
+	cmd.Flags().BoolVar(&ExecFlag.NoBindRootFS, "no-bind-rootfs", false, "手动挂载rootfs")
 	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
 	cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")

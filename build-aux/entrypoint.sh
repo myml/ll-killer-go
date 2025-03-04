@@ -41,6 +41,7 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
 fi
 exec $APP_DIR/ll-killer exec \
     --mount "$APP_DIR/share:$APP_DIR/usr/share:rbind" \
+    --mount "rootfs:/run/app.rootfs::tmpfs" \
     --mount "/+$APP_DIR:/run/app.rootfs::merge" \
     --mount "/run/host/rootfs/dev:/run/app.rootfs/dev:rbind" \
     --mount "/dev/pts:/run/app.rootfs/dev/pts:rbind" \
@@ -54,4 +55,5 @@ exec $APP_DIR/ll-killer exec \
     --mount "/root:/run/app.rootfs/root:rbind" \
     --socket=/run/app.unix \
     --rootfs=/run/app.rootfs \
+    --no-bind-rootfs \
     -- "$KILLER_ENTRYPOINT" "${@:-bash}"

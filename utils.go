@@ -248,6 +248,12 @@ func Mount(opt *MountOption) error {
 	if opt.FSType == "" && (opt.Flags == 0 || opt.Flags&syscall.MS_BIND != 0) {
 		return MountBind(opt.Source, opt.Target, opt.Flags)
 	}
+	if opt.FSType != "" {
+		err := os.MkdirAll(opt.Target, 0755)
+		if err != nil {
+			return err
+		}
+	}
 	return syscall.Mount(opt.Source, opt.Target, opt.FSType, uintptr(opt.Flags), opt.Data)
 }
 func MountBind(source string, target string, flags int) error {
@@ -305,7 +311,7 @@ func MountBind(source string, target string, flags int) error {
 	}
 	err = syscall.Mount(source, target, "none", uintptr(flags), "")
 	if err != nil {
-		return fmt.Errorf("mount:%s", err)
+		return fmt.Errorf("mount:%s->%s(%#x):%w", source, target, flags, err)
 	}
 	return nil
 }
