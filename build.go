@@ -218,7 +218,10 @@ func MountOverlay() {
 	if err != nil {
 		ExitWith(err, "MountAll2")
 	}
-	SwitchTo("MountOverlayStage2", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
+	err = SwitchTo("MountOverlayStage2", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
+	if err != nil {
+		ExitWith(err)
+	}
 }
 
 func BuildMain(cmd *cobra.Command, args []string) error {

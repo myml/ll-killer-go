@@ -534,6 +534,7 @@ func Debug(v ...any) {
 	}
 }
 func ExitWith(err error, v ...any) {
+	Debug("ExitWith", err, v)
 	if err == nil {
 		os.Exit(0)
 	}
