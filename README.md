@@ -1,7 +1,6 @@
-# ll-killer-go - 玲珑杀手Go
+# ll-killer-go - 玲珑杀手Go <!-- omit from toc -->
 
-
-## 项目简介
+## 项目简介 <!-- omit from toc -->
 
 本项目是[Linglong Killer Self-Service (ll-killer 玲珑杀手)](https://github.com/System233/linglong-killer-self-service)的重写版本，去除了构建阶段的shell脚本，全部采用go实现，并添加了一些增强功能。
 
@@ -22,51 +21,239 @@
 - **全局可写容器环境**：在构建环境中，你可以自由修改任何位置，提供灵活的操作空间，方便调试和调整。
 - **自动修复图标和快捷方式**：`build-aux` 工具集内置了多种自动修复脚本，帮助你快速修复常见问题，如图标和快捷方式的更新。
 - **自动检查缺失库**：使用 `ll-killer script build-aux/build-and-check.sh` 命令可以自动检测并修复构建过程中缺失的运行时库，确保容器应用能顺利运行。
+  
 
-## 目录
+## 目录 <!-- omit from toc -->
 
-- [ll-killer-go - 玲珑杀手Go](#ll-killer-go---玲珑杀手go)
-  - [项目简介](#项目简介)
-    - [功能概述](#功能概述)
-    - [特色功能](#特色功能)
-  - [目录](#目录)
-  - [安装与配置](#安装与配置)
-    - [获取 ll-killer](#获取-ll-killer)
-    - [环境要求](#环境要求)
-  - [命令概览](#命令概览)
-  - [各命令详细介绍](#各命令详细介绍)
-    - [1. `apt` — 进入隔离的 APT 环境](#1-apt--进入隔离的-apt-环境)
-    - [2. create — 创建玲珑项目](#2-create--创建玲珑项目)
-      - [从APT元数据创建项目](#从apt元数据创建项目)
-    - [2. `build` — 构建或进入构建环境](#2-build--构建或进入构建环境)
-    - [3. `exec` — 进入运行时环境](#3-exec--进入运行时环境)
-    - [4. `run` — 启动容器](#4-run--启动容器)
-    - [5. `commit` — 提交构建内容](#5-commit--提交构建内容)
-    - [6. `clean` — 清除构建内容](#6-clean--清除构建内容)
-    - [7. `build-aux` — 创建辅助构建脚本](#7-build-aux--创建辅助构建脚本)
-    - [8. `ptrace` — 修正系统调用](#8-ptrace--修正系统调用)
-    - [9. `script` — 执行自定义构建脚本](#9-script--执行自定义构建脚本)
-    - [注意事项](#注意事项)
-  - [挂载相关功能](#挂载相关功能)
-      - [1. 进入运行时环境并挂载文件系统](#1-进入运行时环境并挂载文件系统)
-      - [例 1: 使用 `merge` 合并文件系统](#例-1-使用-merge-合并文件系统)
-      - [例 2: 挂载源路径到目标路径，指定用户和组](#例-2-挂载源路径到目标路径指定用户和组)
-      - [例 3: 使用自定义的 Unix 套接字和合并根目录路径](#例-3-使用自定义的-unix-套接字和合并根目录路径)
-      - [例 4: 使用不同的挂载选项](#例-4-使用不同的挂载选项)
-    - [2. 挂载选项详解](#2-挂载选项详解)
-      - [基本语法](#基本语法)
-      - [支持的挂载标志](#支持的挂载标志)
-      - [合并挂载（Merge Mount）](#合并挂载merge-mount)
-    - [例：使用合并挂载](#例使用合并挂载)
-    - [3. 注意事项](#3-注意事项)
-  - [高级进阶玩法](#高级进阶玩法)
-    - [1. 脱离ll-builder/ll-box构建](#1-脱离ll-builderll-box构建)
-      - [1. 具有Root的玲珑开发环境](#1-具有root的玲珑开发环境)
-      - [2. Rootless的玲珑开发环境](#2-rootless的玲珑开发环境)
-      - [3. 基于Ptrace+Rootless的玲珑开发环境](#3-基于ptracerootless的玲珑开发环境)
-  - [疑难解答](#疑难解答)
-  - [贡献与维护](#贡献与维护)
-  - [许可](#许可)
+
+- [快速教程](#快速教程)
+  - [1. 获取与配置 `ll-killer`](#1-获取与配置-ll-killer)
+    - [（可选）全局安装 `ll-killer`](#可选全局安装-ll-killer)
+  - [2. 开始打包一个应用](#2-开始打包一个应用)
+    - [创建打包环境](#创建打包环境)
+    - [配置软件源](#配置软件源)
+    - [创建 `config.mk` 配置构建参数](#创建-configmk-配置构建参数)
+    - [指定依赖（可选）](#指定依赖可选)
+    - [开始构建](#开始构建)
+    - [测试构建结果](#测试构建结果)
+    - [安装构建结果](#安装构建结果)
+    - [清理构建缓存（可选）](#清理构建缓存可选)
+  - [3. 挂载模式说明](#3-挂载模式说明)
+    - [`fuse-overlayfs` 模式](#fuse-overlayfs-模式)
+    - [`merge` 模式（默认回退）](#merge-模式默认回退)
+    - [模式对比](#模式对比)
+    - [构建过程中遇到目录写入问题？](#构建过程中遇到目录写入问题)
+- [安装与配置](#安装与配置)
+  - [获取 ll-killer](#获取-ll-killer)
+  - [环境要求](#环境要求)
+- [命令概览](#命令概览)
+- [各命令详细介绍](#各命令详细介绍)
+  - [1. `apt` — 进入隔离的 APT 环境](#1-apt--进入隔离的-apt-环境)
+  - [2. `create` — 创建玲珑项目](#2-create--创建玲珑项目)
+    - [从APT元数据创建项目](#从apt元数据创建项目)
+  - [2. `build` — 构建或进入构建环境](#2-build--构建或进入构建环境)
+  - [3. `exec` — 进入运行时环境](#3-exec--进入运行时环境)
+  - [4. `run` — 启动容器](#4-run--启动容器)
+  - [5. `commit` — 提交构建内容](#5-commit--提交构建内容)
+  - [6. `clean` — 清除构建内容](#6-clean--清除构建内容)
+  - [7. `build-aux` — 创建辅助构建脚本](#7-build-aux--创建辅助构建脚本)
+  - [8. `ptrace` — 修正系统调用](#8-ptrace--修正系统调用)
+  - [9. `script` — 执行自定义构建脚本](#9-script--执行自定义构建脚本)
+  - [注意事项](#注意事项)
+- [挂载相关功能](#挂载相关功能)
+    - [1. 进入运行时环境并挂载文件系统](#1-进入运行时环境并挂载文件系统)
+    - [例 1: 使用 `merge` 合并文件系统](#例-1-使用-merge-合并文件系统)
+    - [例 2: 挂载源路径到目标路径，指定用户和组](#例-2-挂载源路径到目标路径指定用户和组)
+    - [例 3: 使用自定义的 Unix 套接字和合并根目录路径](#例-3-使用自定义的-unix-套接字和合并根目录路径)
+    - [例 4: 使用不同的挂载选项](#例-4-使用不同的挂载选项)
+  - [2. 挂载选项详解](#2-挂载选项详解)
+    - [基本语法](#基本语法)
+    - [支持的挂载标志](#支持的挂载标志)
+    - [合并挂载（Merge Mount）](#合并挂载merge-mount)
+  - [例：使用合并挂载](#例使用合并挂载)
+  - [3. 注意事项](#3-注意事项)
+- [高级进阶玩法](#高级进阶玩法)
+  - [1. 脱离ll-builder/ll-box构建](#1-脱离ll-builderll-box构建)
+    - [1.1 具有Root的玲珑开发环境](#11-具有root的玲珑开发环境)
+    - [1.2 Rootless的玲珑开发环境](#12-rootless的玲珑开发环境)
+    - [1.3 基于Ptrace+Rootless的玲珑开发环境](#13-基于ptracerootless的玲珑开发环境)
+- [疑难解答](#疑难解答)
+- [贡献与维护](#贡献与维护)
+- [许可](#许可)
+
+
+## 快速教程
+
+本章节提供一个基于`Makefile`的简明的打包教程，结合实际案例帮助快速掌握流程。
+
+---
+
+### 1. 获取与配置 `ll-killer`
+
+首先，确保系统已安装必要的依赖：
+
+```sh
+sudo apt install apt-file fuse-overlayfs
+```
+
+然后，下载 `ll-killer` 并赋予执行权限：
+
+```sh
+wget https://github.com/System233/ll-killer-go/releases/latest/download/ll-killer-amd64 -O ll-killer
+chmod +x ll-killer
+```
+
+#### （可选）全局安装 `ll-killer`
+
+为了方便使用，可将 `ll-killer` 安装到 `~/.local/bin`：
+
+```sh
+mkdir -p ~/.local/bin
+mv ll-killer ~/.local/bin
+```
+
+如果 `~/.local/bin` 未添加至 `PATH`，请执行：
+
+```sh
+echo 'export PATH=$HOME/.local/bin:$PATH' >>~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### 2. 开始打包一个应用
+
+接下来的步骤默认 `ll-killer` 已加入 `PATH`。
+
+#### 创建打包环境
+
+```sh
+# 创建工作目录并进入
+mkdir gimp && cd gimp
+
+# 生成辅助构建文件
+ll-killer build-aux
+```
+
+#### 配置软件源
+
+创建 `sources.list` 并填充 Deepin V23 的软件源：
+
+```sh
+cat >sources.list <<EOF
+ deb [trusted=yes] https://community-packages.deepin.com/deepin/beige beige main commercial community
+ deb [trusted=yes] https://com-store-packages.uniontech.com/appstorev23 beige appstore
+ deb [trusted=yes] https://community-packages.deepin.com/driver-23/ driver non-free
+EOF
+```
+
+#### 创建 `config.mk` 配置构建参数
+
+```sh
+make config PKG="gimp" KILLER_CREATE_ARGS="--base org.deepin.base/23.1.0"
+```
+
+**参数说明：**
+
+- `PKG`：Deb 包名。
+- `APPID`：玲珑包名，默认值为 `${PKG}.linyaps`。
+- `KILLER_CREATE_ARGS`：传递给 `ll-killer create` 的参数，应确保 `base` 与 `sources.list` 匹配。
+- `KILLER_BUILD_ARGS`：传递给 `ll-killer build` 的参数，可根据需要调整。
+
+#### 指定依赖（可选）
+
+可以创建 `deps.list`，并在其中列出依赖包名，每行一个。
+
+#### 开始构建
+
+```sh
+make
+```
+
+构建完成后，最终会生成两个 `.layer` 文件，仅需 `*_binary.layer`。  
+
+**提示:** 运行`make -n`来了解`make`构建流程，输出示例：
+```sh
+echo "[获取包元数据]"
+ll-killer apt -- apt show gimp > pkg.info
+echo "[创建玲珑项目]"
+ll-killer create --from pkg.info --id "gimp.linyaps"  
+touch deps.list
+echo "[将包安装至构建环境]"
+ll-killer build --ptrace -- apt install -y gimp  | tee apt-install.log
+echo "[检查缺失库]"
+ll-killer build -- build-aux/ldd-check.sh > ldd-check.log
+echo "[搜索缺失库所在包]"
+ll-killer apt -- build-aux/ldd-search.sh ldd-check.log ldd-found.log ldd-notfound.log;
+echo "[安装找到的缺失库]"
+ll-killer build -- apt install -y  | tee apt-install-extra.log;
+echo "[提交文件到容器中]"
+ll-killer commit -- --skip-output-check --skip-strip-symbols
+echo "[导出layer文件]"
+ll-killer export -- --layer
+```
+
+#### 测试构建结果
+此命令创建容器环境的shell，请结合desktop中的Exec指令来测试程序。
+
+```sh
+ll-builder run
+```
+
+run命令默认执行`/opt/apps/APPID/files/entrypoint.sh`入口点。
+如需进入原始玲珑容器环境，请运行：
+```sh
+ll-builder run --exec bash
+```
+#### 安装构建结果
+
+```sh
+# 玲珑 >= 1.7.x 版本需要 sudo 权限
+ll-cli install *_binary.layer
+```
+
+#### 清理构建缓存（可选）
+
+如果需要清理构建过程中产生的缓存，可执行：
+
+```sh
+make clean-ll   # 删除玲珑缓存
+make clean-fs   # 删除构建缓存
+make clean-apt  # 删除 apt 缓存
+make clean      # 删除所有缓存
+```
+
+---
+
+### 3. 挂载模式说明
+
+`ll-killer` 运行时支持 **`fuse-overlayfs`** 和 **`merge`** 两种根文件系统挂载模式。
+
+#### `fuse-overlayfs` 模式
+
+- 需确保 `fuse-overlayfs` 为 **静态编译** 或能直接在容器中运行。
+- 需要将 `fuse-overlayfs` 二进制文件复制到 `build-aux` 目录。
+- 启动速度快，但要求宿主机支持 `fuse` 内核模块。
+
+#### `merge` 模式（默认回退）
+
+- 若 `fuse-overlayfs` 不可用或运行失败，则自动回退至 `merge` 模式。
+- 需要计算合并目录，目录冲突越多，合并时间越长。
+- 兼容性好，作为兜底方案。
+
+#### 模式对比
+
+| 模式            | 启动速度 | 依赖 `fuse` | 兼容性 |
+|---------------|--------|-----------|------|
+| `fuse-overlayfs` | 快     | 是         | 低   |
+| `merge`         | 慢     | 否         | 高   |
+
+#### 构建过程中遇到目录写入问题？
+
+请参考 [疑难解答](#疑难解答) 章节，并根据需要调整 `make` 传递的 `KILLER_BUILD_ARGS` 参数。
+
+---
+
 
 
 ## 安装与配置
@@ -125,6 +312,7 @@ mv ./ll-killer ~/.local/bin
 - `ptrace`：修正系统调用（目前仅支持 `chown` 调用）。
 - `script`：执行自定义构建流程。
 - `help`：显示帮助信息。
+  
 
 ## 各命令详细介绍
 
@@ -147,7 +335,7 @@ ll-killer apt -- bash
 - 隔离环境中的 APT 缓存会被构建容器重用。
 
 
-### 2. create — 创建玲珑项目
+### 2. `create` — 创建玲珑项目
 
 **应用场景**：`create` 命令用于创建新的玲珑容器应用项目。你可以通过此命令生成一个基础项目框架，并根据需要自定义项目的构建命令、应用描述、运行时环境等。此命令还支持从APT Package元数据创建项目，并自动生成相关配置，省去手动查找和配置依赖包的麻烦。
 
@@ -452,7 +640,7 @@ ll-killer exec --mount /dir1+/dir2:/mnt/merged:merge
 ### 1. 脱离ll-builder/ll-box构建
 在最新的ll-killer中，可以使用`ll-killer exec`子命令直接启动玲珑容器环境，从而绕过玲珑容器的一系列限制，同时支持root和rootless权限。
 
-#### 1. 具有Root的玲珑开发环境
+#### 1.1 具有Root的玲珑开发环境
 此容器中的root具有和宿主机相同的权限，主要用于解决文件系统权限相关的问题，在基于内核的idmap挂载实现之前，不失为一种解决办法。
 ```bash
 # 填写玲珑base的存储地址，在这个目录中：~/.cache/linglong-builder/layers/main/中
@@ -483,15 +671,15 @@ ll-killer exec \
 * 此模式下会产生root所属的文件。
 
 
-#### 2. Rootless的玲珑开发环境
+#### 1.2 Rootless的玲珑开发环境
 `Rootless`环境中的用户身份仍然是root，但该root不是真实的root，它的权限与运行命令时用户的权限相同。  
 使用非root用户执行之前的shell脚本即可进入rootless玲珑开发环境，可以在环境中正常运行任何不影响文件权限的命令，包括apt安装等，只是一旦应用使用的chown等命令，则会遇到权限问题。
 
 
 **注意事项**：
-* 由于尚未实现内核`idmap`挂载，这个问题请看下一节。
+* 由于尚未实现内核`idmap`挂载，存在文件权限问题，这个问题请看下一节。
 
-#### 3. 基于Ptrace+Rootless的玲珑开发环境
+#### 1.3 基于Ptrace+Rootless的玲珑开发环境
 在上一个章节中已经讲述了如何启动`rootless`开发环境，但是存在一些权限问题，本章节提供了一种权限问题的缓解办法。
 
 `ll-killer`提供了一个`ptrace`子命令，该命令在`amd64`、`arm64`和`loong64(未测试)`架构上可用。
