@@ -213,8 +213,9 @@ func MountFileSystem() {
 		} else {
 			PivotRootSystem()
 		}
+	} else {
+		ExecShell()
 	}
-	ExecShell()
 }
 func StartMountFileSystem() error {
 	return SwitchTo("MountFileSystem", &SwitchFlags{
