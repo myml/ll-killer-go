@@ -20,14 +20,16 @@ import (
 )
 
 var BuildFlag struct {
-	RootFS      string
-	TmpRootFS   string
-	CWD         string
-	Strict      bool
-	Ptrace      bool
-	EncodedArgs string
-	Self        string
-	Args        []string
+	RootFS            string
+	TmpRootFS         string
+	CWD               string
+	Strict            bool
+	Ptrace            bool
+	EncodedArgs       string
+	Self              string
+	Args              []string
+	FuseOverlayFS     string
+	FuseOverlayFSArgs string
 }
 
 const BuildCommandDescription = `进入玲珑构建环境，可执行 apt 安装等构建操作。`
@@ -68,12 +70,12 @@ func GetBuildArgs() []string {
 		args = append(args, "--ptrace="+fmt.Sprint(BuildFlag.Ptrace))
 	}
 
-	if GlobalFlag.FuseOverlayFS != "" {
-		args = append(args, "--fuse-overlayfs", GlobalFlag.FuseOverlayFS)
+	if BuildFlag.FuseOverlayFS != "" {
+		args = append(args, "--fuse-overlayfs", BuildFlag.FuseOverlayFS)
 	}
 
-	if GlobalFlag.FuseOverlayFSArgs != "" {
-		args = append(args, "--fuse-overlayfs-args", GlobalFlag.FuseOverlayFSArgs)
+	if BuildFlag.FuseOverlayFSArgs != "" {
+		args = append(args, "--fuse-overlayfs-args", BuildFlag.FuseOverlayFSArgs)
 	}
 
 	if BuildFlag.Self != "" {
@@ -221,6 +223,8 @@ func MountOverlay() {
 
 func BuildMain(cmd *cobra.Command, args []string) error {
 	BuildFlag.Args = args
+	GlobalFlag.FuseOverlayFS = BuildFlag.FuseOverlayFS
+	GlobalFlag.FuseOverlayFSArgs = BuildFlag.FuseOverlayFSArgs
 	reexec.Register("MountOverlay", MountOverlay)
 	reexec.Register("MountOverlayStage2", MountOverlayStage2)
 	if !reexec.Init() {
@@ -296,8 +300,8 @@ func CreateBuildCommand() *cobra.Command {
 	cmd.Flags().StringVar(&BuildFlag.EncodedArgs, "encoded-args", "", "编码后的参数")
 	cmd.Flags().StringVar(&BuildFlag.Self, "self", execPath, "ll-killer路径")
 	cmd.Flags().BoolVarP(&BuildFlag.Strict, "strict", "x", os.Getenv("LINGLONG_APPID") == "", "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）")
-	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
-	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
+	cmd.Flags().StringVar(&BuildFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&BuildFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
 
 	cmd.Flags().MarkHidden("encoded-args")
 	// cmd.Flags().MarkHidden("self")

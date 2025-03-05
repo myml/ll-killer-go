@@ -22,16 +22,18 @@ var ExecFlag struct {
 	Mounts []string
 	// UidMappings   []string
 	// GidMappings   []string
-	UID           int
-	GID           int
-	Args          []string
-	RootFS        string
-	Socket        string
-	SocketTimeout time.Duration
-	AutoExit      bool
-	Root          bool
-	NoFail        bool
-	NoBindRootFS  bool
+	UID               int
+	GID               int
+	Args              []string
+	RootFS            string
+	Socket            string
+	SocketTimeout     time.Duration
+	AutoExit          bool
+	Root              bool
+	NoFail            bool
+	NoBindRootFS      bool
+	FuseOverlayFS     string
+	FuseOverlayFSArgs string
 }
 
 const ExecCommandHelp = `
@@ -86,12 +88,12 @@ const ExecCommandHelp = `
 func GetExecArgs() []string {
 	args := []string{"--uid", fmt.Sprint(ExecFlag.UID), "--gid", fmt.Sprint(ExecFlag.GID)}
 
-	if GlobalFlag.FuseOverlayFS != "" {
-		args = append(args, "--fuse-overlayfs", GlobalFlag.FuseOverlayFS)
+	if ExecFlag.FuseOverlayFS != "" {
+		args = append(args, "--fuse-overlayfs", ExecFlag.FuseOverlayFS)
 	}
 
-	if GlobalFlag.FuseOverlayFSArgs != "" {
-		args = append(args, "--fuse-overlayfs-args", GlobalFlag.FuseOverlayFSArgs)
+	if ExecFlag.FuseOverlayFSArgs != "" {
+		args = append(args, "--fuse-overlayfs-args", ExecFlag.FuseOverlayFSArgs)
 	}
 
 	if ExecFlag.RootFS != "" {
@@ -226,6 +228,8 @@ func StartMountFileSystem() error {
 func ExecMain(cmd *cobra.Command, args []string) error {
 	Debug("ExecMain", args)
 	ExecFlag.Args = args
+	GlobalFlag.FuseOverlayFS = ExecFlag.FuseOverlayFS
+	GlobalFlag.FuseOverlayFSArgs = ExecFlag.FuseOverlayFSArgs
 	reexec.Register("MountFileSystem", MountFileSystem)
 	reexec.Register("ExecSystem", ExecSystem)
 	reexec.Register("PivotRootSystem", PivotRootSystem)
@@ -285,8 +289,8 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
 	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
-	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFS, "fuse-overlayfs", "", "fuse-overlayfs命令路径")
-	cmd.Flags().StringVar(&GlobalFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
+	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFS, "fuse-overlayfs", "", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
 	cmd.Flags().SortFlags = false
 	return cmd
 }
