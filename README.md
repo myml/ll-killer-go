@@ -4,7 +4,7 @@
 
 本项目是[Linglong Killer Self-Service (ll-killer 玲珑杀手)](https://github.com/System233/linglong-killer-self-service)的重写版本，去除了构建阶段的shell脚本，全部采用go实现，并添加了一些增强功能。
 
-`ll-killer-go` 是一款专为解决玲珑容器应用构建问题而设计的命令行工具。它帮助开发者快速创建、构建和生成玲珑容器应用项目，同时提供一整套辅助构建与调试功能。使用该工具，用户可以在玲珑容器中获得与传统容器（如 `docker`）类似的构建体验，包括对特权命令的支持和 `apt` 安装等功能，免去了手动解压软件包（如 `deb`）和修复依赖库查找路径的繁琐操作。`ll-killer-go` 通过自动化这些步骤，确保构建过程的一致性与可靠性，极大地提高了开发效率和可维护性。
+`ll-killer-go` 是一款专为解决玲珑容器应用构建问题而设计的命令行工具。它帮助开发者快速创建、构建和生成玲珑容器应用项目，同时提供一整套辅助构建与调试功能。使用该工具，用户可以在玲珑容器中获得与传统容器（如 `docker`）类似的构建体验，包括对特权命令的支持和 `apt` 安装等功能，免去了手动解压软件包（如 `deb`）和修复依赖库查找路径的繁琐操作。`ll-killer-go` 通过重建自由的容器环境，确保构建过程的一致性与可靠性，极大地提高了开发效率和可维护性。
 
 ### 功能概述
 - **创建项目**：自动创建项目所需的配置文件和辅助脚本，初始化项目环境。
@@ -28,7 +28,7 @@
 
 - [快速教程](#快速教程)
   - [1. 获取与配置 `ll-killer`](#1-获取与配置-ll-killer)
-    - [（可选）全局安装 `ll-killer`](#可选全局安装-ll-killer)
+    - [全局安装 `ll-killer`（可选）](#全局安装-ll-killer可选)
   - [2. 开始打包一个应用](#2-开始打包一个应用)
     - [创建打包环境](#创建打包环境)
     - [配置软件源](#配置软件源)
@@ -45,6 +45,7 @@
     - [构建过程中遇到目录写入问题？](#构建过程中遇到目录写入问题)
 - [安装与配置](#安装与配置)
   - [获取 ll-killer](#获取-ll-killer)
+  - [获取静态fuse-overlayfs（可选）](#获取静态fuse-overlayfs可选)
   - [环境要求](#环境要求)
 - [命令概览](#命令概览)
 - [各命令详细介绍](#各命令详细介绍)
@@ -73,7 +74,7 @@
   - [例：使用合并挂载](#例使用合并挂载)
   - [3. 注意事项](#3-注意事项)
 - [高级进阶玩法](#高级进阶玩法)
-  - [1. 脱离ll-builder/ll-box构建](#1-脱离ll-builderll-box构建)
+  - [1. 脱离ll-builder/ll-box启动一个容器](#1-脱离ll-builderll-box启动一个容器)
     - [1.1 具有Root的玲珑开发环境](#11-具有root的玲珑开发环境)
     - [1.2 Rootless的玲珑开发环境](#12-rootless的玲珑开发环境)
     - [1.3 基于Ptrace+Rootless的玲珑开发环境](#13-基于ptracerootless的玲珑开发环境)
@@ -103,7 +104,7 @@ wget https://github.com/System233/ll-killer-go/releases/latest/download/ll-kille
 chmod +x ll-killer
 ```
 
-#### （可选）全局安装 `ll-killer`
+#### 全局安装 `ll-killer`（可选）
 
 为了方便使用，可将 `ll-killer` 安装到 `~/.local/bin`：
 
@@ -286,11 +287,26 @@ mv ./ll-killer ~/.local/bin
    git clone https://github.com/System233/ll-killer-go.git
    cd ll-killer-go
    ```
-1. 安装 Golang 环境。  
+2. 安装 Golang 环境。  
    ```sh
    sudo apt install golang
    ```
-2. 使用 `make` 命令编译并生成可执行文件，默认生成主机架构的二进制。
+3. 使用 `make` 命令编译并生成可执行文件，默认生成主机架构的二进制。
+
+
+### 获取静态fuse-overlayfs（可选）
+
+如需启用fuse-overlayfs模式，需要使用以下命令静态编译[fuse-overlayfs](https://github.com/containers/fuse-overlayfs.git)。
+
+```sh
+git clone https://github.com/containers/fuse-overlayfs.git
+cd fuse-overlayfs
+autoreconf
+automake --add-missing
+autoreconf
+LIBS="-ldl" LDFLAGS="-static" ./configure 
+make -j8
+```
 
 ### 环境要求
 - Linux 系统（支持多种发行版）
@@ -518,6 +534,8 @@ KILLER_EXEC=path/to/ll-killer <build script> [arguments...]
 
 `ll-killer` 提供了强大的挂载功能，使你能够灵活地管理和调整容器中的文件系统。通过挂载选项，你可以将主机上的目录或文件与容器内的目录进行绑定、合并或覆盖。本文将详细介绍如何使用 `ll-killer` 的挂载功能以及常见的用法和注意事项。
 
+`ll-killer`的`--mount`支持常见的`mount`挂载标志，支持的文件系统包括`overlay`、`tmpfs`、`devpts`，支持额外的`merge`和`fuse-overlayfs`文件系统挂载类型。
+
 #### 1. 进入运行时环境并挂载文件系统
 
 你可以使用 `--mount` 参数来挂载主机文件系统到容器内。以下是几个常见的挂载用法示例。
@@ -527,12 +545,12 @@ KILLER_EXEC=path/to/ll-killer <build script> [arguments...]
 在运行时环境中，使用当前用户的 UID 和 GID，合并挂载文件系统并使用 `/myrootfs` 的内容覆盖容器根文件系统。合并文件系统使你能够在没有内核 `overlayfs` 或 `fuse` 模块的支持下，堆叠多个源目录。
 
 ```bash
-ll-killer exec --mount /+/myrootfs:/::merge -- bash
+ll-killer exec --mount /+/myrootfs:/rootfs::merge -- bash
 ```
 
 **解释**：
 - `/+/myrootfs`: 这是合并挂载的源目录。多个源目录使用 `+` 符号分隔。
-- `/`: 这是目标目录，即容器内的根文件系统将会被合并。
+- `/rootfs`: 这是目标目录，即容器内的根文件系统将会被合并到此目录。
 - `::merge`: 指定合并挂载类型。
 
 #### 例 2: 挂载源路径到目标路径，指定用户和组
@@ -637,8 +655,11 @@ ll-killer exec --mount /dir1+/dir2:/mnt/merged:merge
 
 ## 高级进阶玩法
 
-### 1. 脱离ll-builder/ll-box构建
-在最新的ll-killer中，可以使用`ll-killer exec`子命令直接启动玲珑容器环境，从而绕过玲珑容器的一系列限制，同时支持root和rootless权限。
+### 1. 脱离ll-builder/ll-box启动一个容器
+在最新的ll-killer中，可以使用`ll-killer exec`子命令直接启动容器环境，从而绕过玲珑容器的一系列限制，同时支持root和rootless权限。
+
+此功能与传统的容器工具（如`runc`、`podman`等）有异曲同工之妙，但`ll-killer`不依赖`OCI`标准配置，直接通过命令行传递参数，避免了shell处理JSON配置文件难的问题，也避免了显式配置`CAP`，允许从当前环境继承各类权限。
+
 
 #### 1.1 具有Root的玲珑开发环境
 此容器中的root具有和宿主机相同的权限，主要用于解决文件系统权限相关的问题，在基于内核的idmap挂载实现之前，不失为一种解决办法。
@@ -706,19 +727,7 @@ ll-killer ptrace -- bash
  可以添加`--ptrace`参数解决。
 
 **build环境内某些目录写入出现`Permission denied`**  
- 是因为`fuse-overlayfs`有bug所致，需要重新编译：
- ```bash
- git clone https://github.com/containers/fuse-overlayfs.git
- cd fuse-overlayfs
- autoreconf
- automake --add-missing
- autoreconf
- ./configure
- make -j8
- ```
- 复制上述步骤产生的`fuse-overlayfs`文件到项目目录，然后添加build参数`--fuse-overlayfs "$(pwd)/fuse-overlayfs"`。
-
- 复制`fuse-overlayfs`到项目目录内时，会自动启用运行时的`fuse-overlayfs`挂载模式（默认为合并挂载），请确保环境内可以运行此主机编译的`fuse-overlayfs`二进制文件，如提示缺少libfuse3，容器内使用命令`apt install fuse3`安装即可。
+ 是因为系统仓库内置的`fuse-overlayfs`有bug所致，需要重新编译最新版本，参考[获取静态fuse-overlayfs](#获取静态fuse-overlayfs)章节。
 
 **使用root模式构建后，ll-killer commit/ll-builder build出现错误**  
 删除linglong文件夹，或`chown -R $(id -u):$(id -g) linglong`将文件所有者改为自己。
