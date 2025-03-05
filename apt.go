@@ -58,6 +58,11 @@ func MountAPT() {
 			Flags:  syscall.MS_BIND,
 		},
 		{
+			Source: "auth.conf.d",
+			Target: "/etc/apt/auth.conf.d",
+			Flags:  syscall.MS_BIND,
+		},
+		{
 			Source: "apt.conf.d",
 			Target: "/etc/apt/apt.conf.d",
 			Flags:  syscall.MS_BIND,
