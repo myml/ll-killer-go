@@ -26,7 +26,7 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --mount "overlay:$APP_DIR/usr/share::fuse-overlayfs:lowerdir=$APP_DIR/share:/run/app.oldfs/usr/share,squash_to_root,static_nlink" \
         --mount "overlay:/run/app.rootfs::fuse-overlayfs:lowerdir=$APP_DIR:/run/app.oldfs,squash_to_root" \
         --mount "/proc:/run/app.rootfs/proc:rbind" \
-        --mount "/dev:/run/app.rootfs/dev:rbind" \
+        --mount "/run/host/rootfs/dev:/run/app.rootfs/dev:rbind" \
         --mount "/run:/run/app.rootfs/run:rbind" \
         --mount "/sys:/run/app.rootfs/sys:rbind" \
         --mount "/tmp:/run/app.rootfs/tmp:rbind" \
@@ -35,7 +35,9 @@ if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/ro
         --mount "/run/app.dev/pts:/run/app.rootfs/dev/pts:rbind" \
         --mount "/run/app.dev/shm:/run/app.rootfs/dev/shm:rbind" \
         --mount "/run/app.dev/mqueue:/run/app.rootfs/dev/mqueue:rbind" \
+        --mount "/opt/apps/$LINGLONG_APPID:/run/app.rootfs/opt/apps/$LINGLONG_APPID:rbind" \
         --rootfs /run/app.rootfs \
+	    --no-bind-rootfs \
         --socket=/run/app.unix \
         -- "$KILLER_ENTRYPOINT" "${@:-bash}"
 fi
