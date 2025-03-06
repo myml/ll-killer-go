@@ -78,5 +78,6 @@ clean-fs:
 	rm -rf linglong/filesystem
 clean-ll:
 	rm -rf linglong/output
+	ll-builder list|grep "$(PKG)"|xargs ll-builder remove
 clean: clean-ll clean-fs
 	rm -rf *.log *.layer
