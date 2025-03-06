@@ -24,9 +24,12 @@ jobs:
             GOARCH=$arch make ll-killer
             mv ll-killer ll-killer-$arch
           done
+          sha1sum ll-killer-* >ll-killer.sha1sum
       - name: Upload release assets
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{contains(github.ref_name,'dev')}}
+          body_path: ./ll-killer.sha1sum
           files: |
             ./ll-killer-*
+            ./ll-killer.sha1sum
