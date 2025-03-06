@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/rpc"
@@ -33,10 +32,6 @@ type PtyExecArgs struct {
 }
 type PtyExecReply struct {
 	ExitCode int
-}
-
-func (reply *PtyExecReply) Error() string {
-	return fmt.Sprint("exited:", reply.ExitCode)
 }
 
 func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
@@ -206,5 +201,5 @@ func (pty *Pty) Call(args *PtyExecArgs) error {
 		Debug("rpc.Call:", err)
 		return err
 	}
-	return &reply
+	return &ExitStatus{ExitCode: reply.ExitCode}
 }

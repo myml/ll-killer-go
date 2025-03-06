@@ -68,6 +68,13 @@ type SwitchFlags struct {
 	UidMappings   []string
 	GidMappings   []string
 }
+type ExitStatus struct {
+	ExitCode int
+}
+
+func (s *ExitStatus) Error() string {
+	return fmt.Sprint("exited:", s.ExitCode)
+}
 
 func CreateCommand(name string) *exec.Cmd {
 	cmd := reexec.Command(name)
@@ -545,9 +552,9 @@ func ExitWith(err error, v ...any) {
 		}
 		os.Exit(exitErr.ExitCode())
 	}
-	var reply *PtyExecReply
-	if errors.As(err, &reply) {
-		os.Exit(reply.ExitCode)
+	var status *ExitStatus
+	if errors.As(err, &status) {
+		os.Exit(status.ExitCode)
 	}
 	log.Fatalln(append([]any{err}, v...)...)
 }

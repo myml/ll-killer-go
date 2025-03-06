@@ -249,7 +249,7 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 				Env:  os.Environ(),
 			}
 			err = pty.Call(args)
-			if !errors.Is(err, &PtyExecReply{}) {
+			if !errors.Is(err, &ExitStatus{}) {
 				go func() {
 					signal <- StartMountFileSystem()
 				}()

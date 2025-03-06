@@ -43,7 +43,6 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 	if err == nil {
 		args[0] = binary
 	}
-
 	process, err := os.StartProcess(args[0], args, &os.ProcAttr{
 		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
 		Env:   os.Environ(),
@@ -83,7 +82,7 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 		}
 		if wstatus.Exited() {
 			if wpid == pid {
-				return nil
+				return &ExitStatus{ExitCode: wstatus.ExitStatus()}
 			}
 			continue
 		}
