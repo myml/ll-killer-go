@@ -80,6 +80,11 @@ func NormalizeVersion(version string) string {
 	return strings.Join(chunks, ".")
 }
 func SetupPackageMetadata(cmd *cobra.Command) error {
+
+	if CreateFlag.Metadata == "" {
+		return nil
+	}
+
 	metadata, err := ParsePackageMetadataFromFile(CreateFlag.Metadata)
 	if err != nil {
 		return err
