@@ -35,6 +35,7 @@ type PtyExecReply struct {
 }
 
 func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
+	Debug("RPC:Exec:", args)
 	slave, err := os.OpenFile(args.Pty, os.O_RDWR, 0)
 	if err != nil {
 		return err
@@ -144,12 +145,12 @@ func (pty *Pty) connect() (*rpc.Client, error) {
 		}
 	}
 }
-func (pty *Pty) Call(args *PtyExecArgs) error {
+func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 
 	client, err := pty.connect()
 	if err != nil {
 		Debug("rpc.Dial:", err)
-		return err
+		return 1, err
 	}
 	defer client.Close()
 
@@ -157,7 +158,7 @@ func (pty *Pty) Call(args *PtyExecArgs) error {
 		con, slavePath, err := console.NewPty()
 		if err != nil {
 			Debug("console.NewPty:", err)
-			return err
+			return 1, err
 		}
 		defer con.Close()
 		args.Pty = slavePath
@@ -183,7 +184,7 @@ func (pty *Pty) Call(args *PtyExecArgs) error {
 			state, err := term.SetRawTerminal(os.Stdin.Fd())
 			if err != nil {
 				Debug("term.SetRawTerminal:", err)
-				return err
+				return 1, err
 			} else {
 				defer term.RestoreTerminal(os.Stdin.Fd(), state)
 			}
@@ -199,7 +200,7 @@ func (pty *Pty) Call(args *PtyExecArgs) error {
 	var reply PtyExecReply
 	if err := client.Call("Pty.Exec", args, &reply); err != nil {
 		Debug("rpc.Call:", err)
-		return err
+		return 1, err
 	}
-	return &ExitStatus{ExitCode: reply.ExitCode}
+	return reply.ExitCode, nil
 }

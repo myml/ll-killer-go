@@ -7,7 +7,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -248,18 +247,23 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 				Dir:  cwd,
 				Env:  os.Environ(),
 			}
-			err = pty.Call(args)
-			if !errors.Is(err, &ExitStatus{}) {
+			exitCode, err := pty.Call(args)
+			Debug("pty.Call", exitCode, err)
+			if err != nil {
 				go func() {
 					signal <- StartMountFileSystem()
 				}()
 				go func() {
 					pty.Timeout = ExecFlag.SocketTimeout
-					signal <- pty.Call(args)
+					exitCode, err := pty.Call(args)
+					if err == nil {
+						err = &ExitStatus{ExitCode: exitCode}
+					}
+					signal <- err
 				}()
 				return <-signal
 			}
-			return err
+			return &ExitStatus{ExitCode: exitCode}
 		} else {
 			return StartMountFileSystem()
 		}
