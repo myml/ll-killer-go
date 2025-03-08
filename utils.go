@@ -547,9 +547,6 @@ func ExitWith(err error, v ...any) {
 	}
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
-		if len(v) > 0 {
-			log.Println(v...)
-		}
 		os.Exit(exitErr.ExitCode())
 	}
 	var status *ExitStatus

@@ -87,7 +87,11 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 			continue
 		}
 		if wstatus.Stopped() && wstatus.StopSignal()&0x80 == 0 {
-			err = unix.PtraceSyscall(wpid, 0)
+			sig := wstatus.StopSignal()
+			if wstatus.StopSignal() == syscall.SIGTRAP || (wpid != pid && wstatus.StopSignal() == syscall.SIGSTOP) {
+				sig = 0
+			}
+			err = unix.PtraceSyscall(wpid, int(sig))
 			if err != nil {
 				return fmt.Errorf("PtraceSyscall.SIGTRAP:%v", err)
 			}

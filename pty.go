@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/containerd/console"
 	"github.com/moby/term"
@@ -62,8 +63,17 @@ func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
 		Pdeathsig: syscall.SIGKILL,
 	}
 
-	err = cmd.Run()
+	err = cmd.Start()
+	if err != nil {
+		Debug("RPC:Exec:Err", err)
+		return err
+	} else {
+		Debug("RPC:Exec:Pid", cmd.Process.Pid)
+	}
+	pid := cmd.Process.Pid
+	err = cmd.Wait()
 
+	Debug("RPC:Exec:Exited", pid, err)
 	var exitErr *exec.ExitError
 	if err != nil && errors.As(err, &exitErr) {
 		reply.ExitCode = exitErr.ExitCode()
@@ -164,17 +174,40 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 		args.Pty = slavePath
 
 		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGWINCH)
+		signal.Notify(ch,
+			syscall.SIGWINCH,
+			syscall.SIGINT,  // Ctrl+C 中断信号
+			syscall.SIGTERM, // 终止信号
+			syscall.SIGQUIT, // 退出信号
+			syscall.SIGHUP,  // 挂断信号 / 重新加载配置
+			syscall.SIGUSR1, // 用户自定义信号 1
+			syscall.SIGUSR2, // 用户自定义信号 2
+			syscall.SIGCONT, // 继续执行信号（当进程被暂停后恢复）
+		)
 		go func() {
-			for range ch {
-				winSize, err := term.GetWinsize(os.Stdin.Fd())
-				if err != nil {
-					Debug("term.GetSize:", err)
-					continue
-				}
-				err = term.SetWinsize(con.Fd(), winSize)
-				if err != nil {
-					Debug("term.SetWinsize:", err)
+			for sig := range ch {
+				if sig == syscall.SIGWINCH {
+					winSize, err := term.GetWinsize(os.Stdin.Fd())
+					if err != nil {
+						Debug("term.GetSize:", err)
+						continue
+					}
+					err = term.SetWinsize(con.Fd(), winSize)
+					if err != nil {
+						Debug("term.SetWinsize:", err)
+					}
+				} else {
+					var pgrp int
+					_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, con.Fd(), uintptr(syscall.TIOCGPGRP), uintptr(unsafe.Pointer(&pgrp)))
+					if errno != 0 {
+						Debug("syscall.Ioctl:", err)
+						continue
+					}
+					err = syscall.Kill(-pgrp, sig.(syscall.Signal))
+					if err != nil {
+						Debug("syscall.Kill:", err)
+						continue
+					}
 				}
 			}
 		}()
@@ -195,8 +228,10 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 		go func() {
 			io.Copy(os.Stdout, con)
 		}()
+
 	}
 
+	Debug("Pty.SelfPID", os.Getpid())
 	var reply PtyExecReply
 	if err := client.Call("Pty.Exec", args, &reply); err != nil {
 		Debug("rpc.Call:", err)
