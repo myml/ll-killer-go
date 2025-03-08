@@ -27,3 +27,6 @@ find $PREFIX/share -xtype l -exec "relink.sh" "{}" \;
 
 echo "[配置快捷方式]"
 find $PREFIX/share/applications -name "*.desktop" -exec "setup-desktop.sh" "{}" \; 
+
+echo "[配置服务单元]"
+find $PREFIX/etc/systemd -name "*.service" -type f -exec "setup-systemd.sh" "{}" \; 
