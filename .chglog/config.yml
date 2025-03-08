@@ -1,0 +1,26 @@
+style: github
+template: CHANGELOG.tpl.md
+info:
+  title: CHANGELOG
+  repository_url: https://github.com/System233/ll-killer-go
+options:
+  commits:
+  commit_groups:
+    title_maps:
+      feat: 新增功能
+      fix: 错误修复
+      perf: 性能改进
+      refactor: 代码重构
+      break: 兼容性更改
+      build: 构建系统
+      chore: 代码调整
+    
+  tag_filter_pattern: ^v\d+\.\d+\.\d+$
+  header:
+    pattern: "^(\\w*)\\:\\s(.*)$"
+    pattern_maps:
+      - Type
+      - Subject
+  notes:
+    keywords:
+      - 说明
