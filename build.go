@@ -287,7 +287,7 @@ func CreateBuildCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "build",
-		Short:   "构建或进入构建环境",
+		Short:   "进入构建环境",
 		Long:    BuildHelpMessage(BuildCommandDescription),
 		Example: BuildHelpMessage(BuildCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {

@@ -23,7 +23,7 @@ func ExportMain(cmd *cobra.Command, args []string) error {
 func CreateExportCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
-		Short: "启动容器",
+		Short: "导出应用",
 		Long:  "此命令执行ll-builder export，用于提供一致性体验。",
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitWith(ExportMain(cmd, args))
