@@ -1,4 +1,20 @@
 
+<a name="v1.1.4"></a>
+## [v1.1.4](https://github.com/System233/ll-killer-go/compare/v1.1.3...v1.1.4) (2025-03-08)
+
+### 代码调整
+
+* 调整命令行文本
+
+### 新增功能
+
+* 添加systemd服务单元支持
+
+### 构建系统
+
+* 添加changelog生成
+
+
 <a name="v1.1.3"></a>
 ## [v1.1.3](https://github.com/System233/ll-killer-go/compare/v1.1.2...v1.1.3) (2025-03-08)
 
