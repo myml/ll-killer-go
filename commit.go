@@ -21,9 +21,10 @@ func CommitMain(cmd *cobra.Command, args []string) error {
 }
 func CreateCommitCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "commit",
-		Short: "提交构建内容",
-		Long:  "此命令执行ll-builder build，用于提供一致性体验。",
+		Use:                "commit",
+		Short:              "提交构建内容",
+		Long:               "此命令执行ll-builder build，用于提供一致性体验。",
+		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitWith(CommitMain(cmd, args))
 		},

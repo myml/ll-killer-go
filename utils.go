@@ -305,7 +305,7 @@ func Mount(opt *MountOption) error {
 				}
 			}
 		}
-		Debug("mkdir.overlay", dirs)
+		Debug("mkdir.overlay", GlobalFlag.FuseOverlayFS, dirs)
 		if err := MkdirAlls(dirs, 0755); err != nil {
 			log.Println(err)
 		}
