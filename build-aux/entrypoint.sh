@@ -16,7 +16,10 @@ if [ ! -e "$OVERLAY_EXEC_PATH" ];then
 fi
 OVERLAY_EXEC=${OVERLAY_EXEC:-"$OVERLAY_EXEC_PATH"}
 KILLER_EXEC=${KILLER_EXEC:-"$APP_DIR/ll-killer"}
-if (test -z "$NO_OVERLAYFS" && "$OVERLAY_EXEC" --version && test -e /run/host/rootfs/dev/fuse ) 2>/dev/null >/dev/null; then
+if (test -z "$NO_OVERLAYFS" && test -e /run/host/rootfs/dev/fuse ) 2>/dev/null >/dev/null; then
+    if ! "$OVERLAY_EXEC" --version 2>/dev/null >/dev/null;then
+        OVERLAY_EXEC=""
+    fi
     exec $APP_DIR/ll-killer exec \
         --fuse-overlayfs "$OVERLAY_EXEC" \
         --fuse-overlayfs-args "$OVERLAY_ARGS" \
