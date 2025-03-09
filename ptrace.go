@@ -30,41 +30,29 @@ func Ptrace(self string, args []string) {
 	args = append([]string{self, "ptrace", "--"}, args...)
 	Exec(args...)
 }
-func PtraceMain(cmd *cobra.Command, args []string) error {
+func HandlePtraceEvent(process *os.Process, pid int) error {
+	Debug("HandlePtraceEvent", pid)
 	var usage unix.Rusage
 	var wstatus unix.WaitStatus
 	var wpid int
-	runtime.LockOSThread()
-	if len(args) == 0 {
-		args = []string{DefaultShell()}
-	}
-
-	binary, err := exec.LookPath(args[0])
-	if err == nil {
-		args[0] = binary
-	}
-	process, err := os.StartProcess(args[0], args, &os.ProcAttr{
-		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
-		Env:   os.Environ(),
-		Sys: &syscall.SysProcAttr{
-			Ptrace: true,
-		},
-	})
+	err := unix.Prctl(unix.PR_SET_PDEATHSIG, uintptr(unix.SIGKILL), 0, 0, 0)
 	if err != nil {
 		return err
 	}
-
-	pid := process.Pid
-	wpid, err = unix.Wait4(pid, &wstatus, syscall.WUNTRACED, &usage)
+	err = unix.Prctl(unix.PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0)
+	if err != nil {
+		return err
+	}
+	wpid, err = unix.Wait4(pid, &wstatus, unix.WUNTRACED, &usage)
 	if err != nil {
 		return err
 	}
 	err = unix.PtraceSetOptions(pid,
-		syscall.PTRACE_O_TRACECLONE|
-			syscall.PTRACE_O_TRACESYSGOOD|
-			syscall.PTRACE_O_TRACEFORK|
-			syscall.PTRACE_O_TRACEEXEC|
-			syscall.PTRACE_O_TRACEVFORK)
+		unix.PTRACE_O_TRACECLONE|
+			unix.PTRACE_O_TRACESYSGOOD|
+			unix.PTRACE_O_TRACEFORK|
+			unix.PTRACE_O_TRACEEXEC|
+			unix.PTRACE_O_TRACEVFORK)
 	if err != nil {
 		return err
 	}
@@ -73,31 +61,50 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	// chown 4:5 test
+	IsError := func(err error) bool {
+		if err == nil {
+			return false
+		}
+		if err == unix.ESRCH || err == unix.ECHILD {
+			return false
+		}
+		return true
+	}
 	for {
-		// syscall.RawSyscall(syscall.SYS_WAITID)
 		wpid, err = unix.Wait4(-1, &wstatus, 0, &usage)
 		if err != nil {
 			return fmt.Errorf("Wait4:%v", err)
 		}
-		if wstatus.Continued() {
-			continue
-		}
 		if wstatus.Exited() {
-			if wpid == pid {
+			/*
+				If a thread group leader is traced and exits by calling _exit(2),
+				a PTRACE_EVENT_EXIT stop will happen for it (if requested),
+				but the subsequent WIFEXITED notification will not be delivered
+				until all other threads exit. As explained above, if one of other
+				threads calls execve(2), the death of the thread group leader
+				will never be reported. If the execed thread is not traced by
+				this tracer, the tracer will never know that execve(2) happened.
+				One possible workaround is to PTRACE_DETACH the thread group
+				leader instead of restarting it in this case.
+				Last confirmed on 2.6.38.6.
+			*/
+			if wpid == process.Pid || process.Signal(syscall.Signal(0)) != nil {
 				return &ExitStatus{ExitCode: wstatus.ExitStatus()}
 			}
 			continue
 		}
 		if wstatus.Signaled() {
-			if wpid == pid {
-				return &ExitStatus{ExitCode: int(-wstatus.Signal())}
+			if wpid == process.Pid || process.Signal(syscall.Signal(0)) != nil {
+				return &ExitStatus{ExitCode: -int(wstatus.Signal())}
 			}
 			continue
 		}
-		if wstatus.Stopped() && wstatus.StopSignal()&0x80 == 0 {
+		if wstatus.Continued() || !wstatus.Stopped() {
+			continue
+		}
+		if wstatus.StopSignal()&0x80 == 0 {
 			sig := wstatus.StopSignal()
-			if wstatus.StopSignal() == syscall.SIGTRAP || (wpid != pid && wstatus.StopSignal() == syscall.SIGSTOP) {
+			if wstatus.StopSignal() == unix.SIGTRAP || (wpid != pid && wstatus.StopSignal() == unix.SIGSTOP) {
 				sig = 0
 			}
 			err = unix.PtraceSyscall(wpid, int(sig))
@@ -106,25 +113,52 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 			}
 			continue
 		}
-		if !wstatus.Stopped() {
-			Debug("Ptrace: signal ignored: ", wstatus)
-			continue
-		}
 		var regs unix.PtraceRegs
 		err = unix.PtraceGetRegs(wpid, &regs)
-		if err != nil {
+		if IsError(err) {
 			return fmt.Errorf("PtraceGetRegs: %#x, %v", wstatus, err)
 		}
 		err = ptrace.PtraceHandle(wpid, regs)
-		if err != nil {
+		if IsError(err) {
 			return fmt.Errorf("PtraceHandle:%v", err)
 		}
 		err = unix.PtraceSyscall(wpid, 0)
-
-		if err != nil {
+		if IsError(err) {
 			return fmt.Errorf("PtraceSyscall:%v", err)
 		}
 	}
+}
+func PtraceMain(cmd *cobra.Command, args []string) error {
+	Debug("PtraceMain", args)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if len(args) == 0 {
+		args = []string{DefaultShell()}
+	}
+
+	binary, err := exec.LookPath(args[0])
+	if err == nil {
+		args[0] = binary
+	}
+
+	process, err := os.StartProcess(args[0], args, &os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+		Env:   os.Environ(),
+		Sys: &syscall.SysProcAttr{
+			Ptrace: true,
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = HandlePtraceEvent(process, process.Pid)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 func CreatePtraceCommand() *cobra.Command {
 	cmd := &cobra.Command{
