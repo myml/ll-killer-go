@@ -80,9 +80,18 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("Wait4:%v", err)
 		}
+		if wstatus.Continued() {
+			continue
+		}
 		if wstatus.Exited() {
 			if wpid == pid {
 				return &ExitStatus{ExitCode: wstatus.ExitStatus()}
+			}
+			continue
+		}
+		if wstatus.Signaled() {
+			if wpid == pid {
+				return &ExitStatus{ExitCode: int(-wstatus.Signal())}
 			}
 			continue
 		}
@@ -93,15 +102,18 @@ func PtraceMain(cmd *cobra.Command, args []string) error {
 			}
 			err = unix.PtraceSyscall(wpid, int(sig))
 			if err != nil {
-				return fmt.Errorf("PtraceSyscall.SIGTRAP:%v", err)
+				return fmt.Errorf("PtraceSyscall.SIGTRAP:%#x,%v", wstatus, err)
 			}
 			continue
 		}
-
+		if !wstatus.Stopped() {
+			Debug("Ptrace: signal ignored: ", wstatus)
+			continue
+		}
 		var regs unix.PtraceRegs
 		err = unix.PtraceGetRegs(wpid, &regs)
 		if err != nil {
-			return fmt.Errorf("PtraceGetRegs:%v", err)
+			return fmt.Errorf("PtraceGetRegs: %#x, %v", wstatus, err)
 		}
 		err = ptrace.PtraceHandle(wpid, regs)
 		if err != nil {
