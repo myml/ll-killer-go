@@ -86,12 +86,25 @@ func embedFilesToDisk(destDir string, force bool) error {
 	log.Println("created:", "Makefile")
 	return nil
 }
+
 func SetupKillerExec(target string) error {
-	if !CreateFlag.Force && IsExist(KillerExec) {
+	if !BuildAuxFlag.Force && IsExist(KillerExec) {
 		log.Println("skip:", target)
 		return nil
 	}
-	err := CopyFileIO(reexec.Self(), target)
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	isSame, err := IsSameFile(target, self)
+	if err != nil {
+		return err
+	}
+	if isSame {
+		log.Println("skip same:", target)
+		return nil
+	}
+	err = CopyFileIO(reexec.Self(), target)
 	if err != nil {
 		return err
 	}
