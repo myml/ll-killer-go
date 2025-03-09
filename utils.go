@@ -310,7 +310,7 @@ func Mount(opt *MountOption) error {
 			log.Println(err)
 		}
 		if opt.FSType == "ifovl" || GlobalFlag.FuseOverlayFS == "" {
-			return FuseOvlMain(fuseOverlayFSArgs)
+			return ExecFuseOvlMain(fuseOverlayFSArgs)
 		}
 		return RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
 	}
