@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"ll-killer/ptrace"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -39,7 +40,10 @@ func main() {
 		Debug("SetupEnvVar:", err)
 	}
 	cobra.EnableCommandSorting = false
-	// log.SetFlags(0)
+	pid := os.Getpid()
+	log.SetFlags(0)
+	log.SetPrefix(fmt.Sprintf("[PID %d] ", pid))
+
 	app := cobra.Command{
 		Use:     "ll-killer",
 		Short:   Usage,

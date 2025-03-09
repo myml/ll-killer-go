@@ -294,7 +294,7 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
 	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
-	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFS, "fuse-overlayfs", "", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFS, "fuse-overlayfs", "", "外部fuse-overlayfs命令路径(可选)")
 	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
 	cmd.Flags().SortFlags = false
 	return cmd

@@ -49,14 +49,10 @@ var (
 	BuildTime = "unknown"
 )
 
-var GlobalFlag = struct {
+var GlobalFlag struct {
 	Debug             bool
 	FuseOverlayFS     string
 	FuseOverlayFSArgs string
-}{
-	Debug:             false,
-	FuseOverlayFS:     "fuse-overlayfs",
-	FuseOverlayFSArgs: "",
 }
 
 type SwitchFlags struct {
@@ -252,8 +248,71 @@ func IsExist(name string) bool {
 }
 
 func Mount(opt *MountOption) error {
+	Debug("Mount", []string{opt.Source, opt.Target, opt.FSType, opt.FSType, opt.Data})
 	if opt.FSType == "" && (opt.Flags == 0 || opt.Flags&syscall.MS_BIND != 0) {
 		return MountBind(opt.Source, opt.Target, opt.Flags)
+	}
+	if opt.FSType == "merge" {
+		filesystem := make(map[string]string)
+		excludes := append([]string{opt.Target}, strings.Split(opt.Data, kMountArgsItemSep)...)
+		if opt.Data == "" {
+			excludes = append(excludes, "/tmp", "/proc", "/dev", "/sys", "/run", "/var/run")
+		}
+		for index, path := range excludes {
+			result, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			excludes[index] = result
+		}
+		target, err := filepath.Abs(opt.Target)
+		if err != nil {
+			return err
+		}
+		sources := strings.Split(opt.Source, kMountArgsItemSep)
+		for index, path := range sources {
+			result, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			sources[index] = result
+		}
+		filesystem, err = opt.buildFileSystem(sources, target, filesystem, excludes)
+		if err != nil {
+			return err
+		}
+
+		for mount, from := range filesystem {
+			if err = MountBind(from, mount, opt.Flags); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if opt.FSType == FuseOverlayFSType || opt.FSType == "ifovl" {
+		fuseOverlayFSArgs := []string{"-o", opt.Data, opt.Target}
+		if GlobalFlag.FuseOverlayFSArgs != "" {
+			fuseOverlayFSArgs = append(fuseOverlayFSArgs, strings.Split(GlobalFlag.FuseOverlayFSArgs, " ")...)
+		}
+		dirs := []string{opt.Target}
+		for _, item := range strings.Split(opt.Data, ",") {
+			param := strings.SplitN(item, "=", 2)
+			if len(param) == 2 {
+				key := strings.TrimSpace(param[0])
+				value := strings.TrimSpace(param[1])
+				if key == "upperdir" || key == "workdir" {
+					dirs = append(dirs, value)
+				}
+			}
+		}
+		Debug("mkdir.overlay", dirs)
+		if err := MkdirAlls(dirs, 0755); err != nil {
+			log.Println(err)
+		}
+		if opt.FSType == "ifovl" || GlobalFlag.FuseOverlayFS == "" {
+			return FuseOvlMain(fuseOverlayFSArgs)
+		}
+		return RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
 	}
 	if opt.FSType != "" {
 		err := os.MkdirAll(opt.Target, 0755)
@@ -472,66 +531,7 @@ func (opt *MountOption) buildFileSystem(sources []string, target string, filesys
 }
 
 func (opt *MountOption) Mount() error {
-	Debug("Mount", []string{opt.Source, opt.Target, opt.FSType, opt.FSType, opt.Data})
-	if opt.FSType == "merge" {
-		filesystem := make(map[string]string)
-		excludes := append([]string{opt.Target}, strings.Split(opt.Data, kMountArgsItemSep)...)
-		if opt.Data == "" {
-			excludes = append(excludes, "/tmp", "/proc", "/dev", "/sys", "/run", "/var/run")
-		}
-		for index, path := range excludes {
-			result, err := filepath.Abs(path)
-			if err != nil {
-				return err
-			}
-			excludes[index] = result
-		}
-		target, err := filepath.Abs(opt.Target)
-		if err != nil {
-			return err
-		}
-		sources := strings.Split(opt.Source, kMountArgsItemSep)
-		for index, path := range sources {
-			result, err := filepath.Abs(path)
-			if err != nil {
-				return err
-			}
-			sources[index] = result
-		}
-		filesystem, err = opt.buildFileSystem(sources, target, filesystem, excludes)
-		if err != nil {
-			return err
-		}
 
-		for mount, from := range filesystem {
-			if err = MountBind(from, mount, opt.Flags); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if opt.FSType == FuseOverlayFSType {
-		fuseOverlayFSArgs := []string{"-o", opt.Data, opt.Target}
-		if GlobalFlag.FuseOverlayFSArgs != "" {
-			fuseOverlayFSArgs = append(fuseOverlayFSArgs, strings.Split(GlobalFlag.FuseOverlayFSArgs, " ")...)
-		}
-		dirs := []string{opt.Target}
-		for _, item := range strings.Split(opt.Data, ",") {
-			param := strings.SplitN(item, "=", 2)
-			if len(param) == 2 {
-				key := strings.TrimSpace(param[0])
-				value := strings.TrimSpace(param[1])
-				if key == "upperdir" || key == "workdir" {
-					dirs = append(dirs, value)
-				}
-			}
-		}
-		Debug("mkdir.overlay", dirs)
-		if err := MkdirAlls(dirs, 0755); err != nil {
-			log.Println(err)
-		}
-		return RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
-	}
 	return Mount(opt)
 }
 

@@ -173,7 +173,11 @@ func MountOverlay() {
 	if GlobalFlag.FuseOverlayFSArgs != "" {
 		fuseOverlayFSArgs = append(fuseOverlayFSArgs, strings.Split(GlobalFlag.FuseOverlayFSArgs, " ")...)
 	}
-	err = RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
+	if GlobalFlag.FuseOverlayFS != "" {
+		err = RunCommand(GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs...)
+	} else {
+		err = ExecFuseOvlMain(fuseOverlayFSArgs)
+	}
 	if err != nil {
 		ExitWith(err, "fuse-overlayfs:", GlobalFlag.FuseOverlayFS, fuseOverlayFSArgs)
 	}
@@ -303,7 +307,7 @@ func CreateBuildCommand() *cobra.Command {
 	cmd.Flags().StringVar(&BuildFlag.EncodedArgs, "encoded-args", "", "编码后的参数")
 	cmd.Flags().StringVar(&BuildFlag.Self, "self", execPath, "ll-killer路径")
 	cmd.Flags().BoolVarP(&BuildFlag.Strict, "strict", "x", os.Getenv("LINGLONG_APPID") == "", "严格模式，启动一个与运行时环境相同的构建环境，确保环境一致性（不含gcc等工具）")
-	cmd.Flags().StringVar(&BuildFlag.FuseOverlayFS, "fuse-overlayfs", "fuse-overlayfs", "fuse-overlayfs命令路径")
+	cmd.Flags().StringVar(&BuildFlag.FuseOverlayFS, "fuse-overlayfs", "", "外部fuse-overlayfs命令路径(可选)")
 	cmd.Flags().StringVar(&BuildFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
 
 	cmd.Flags().MarkHidden("encoded-args")
