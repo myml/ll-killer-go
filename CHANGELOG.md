@@ -1,4 +1,30 @@
 
+<a name="v1.2.0"></a>
+## [v1.2.0](https://github.com/System233/ll-killer-go/compare/v1.1.4...v1.2.0) (2025-03-09)
+
+### 代码调整
+
+* 禁用commit/export上的参数解析，现在无需双横线分割
+
+### 性能改进
+
+* 默认使用内置fuse/ifovl挂载，提升性能
+
+### 新增功能
+
+* 添加内置fuse-overlayfs挂载模式: ifovl，无需再提供外部二进制
+* 添加内置overlay命令
+
+### 构建系统
+
+* 移除changelog更新
+* 更新构建系统Changelog条件
+
+### 错误修复
+
+* 避免ifovl模式下进程进入后台
+
+
 <a name="v1.1.4"></a>
 ## [v1.1.4](https://github.com/System233/ll-killer-go/compare/v1.1.3...v1.1.4) (2025-03-08)
 
