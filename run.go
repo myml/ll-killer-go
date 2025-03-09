@@ -22,9 +22,10 @@ func RunMain(cmd *cobra.Command, args []string) error {
 
 func CreateRunCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "run",
-		Short: "启动容器",
-		Long:  "此命令执行ll-builder run，用于提供一致性体验。",
+		Use:                "run",
+		Short:              "启动容器",
+		Long:               "此命令执行ll-builder run，用于提供一致性体验。",
+		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitWith(RunMain(cmd, args))
 		},
