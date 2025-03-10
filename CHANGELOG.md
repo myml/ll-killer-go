@@ -1,4 +1,38 @@
 
+<a name="v1.3.0"></a>
+## [v1.3.0](https://github.com/System233/ll-killer-go/compare/v1.2.1...v1.3.0) (2025-03-10)
+
+### 代码重构
+
+* 调整代码结构
+
+### 兼容性更改
+
+* 禁用run命令别名上的参数解析
+
+### 新增功能
+
+* 入口点添加wait后台进程支持，避免后台进程运行时容器被销毁
+* exec子命令添加wait选项等待后台进程全部退出
+* exec子命令添加nsenter选项 [因权限问题暂时不可用]
+* 添加nsenter子命令
+* 新增layer系列子命令
+* 增加Dbus/右键菜单补丁支持，添加更多systemd查找位置
+
+### 错误修复
+
+* 处理可能的主线程被替换的情况
+* build-aux强制覆盖选项和避免覆盖自身
+
+
+<a name="v1.2.1"></a>
+## [v1.2.1](https://github.com/System233/ll-killer-go/compare/v1.2.0...v1.2.1) (2025-03-09)
+
+### 错误修复
+
+* ptrace处理signaled终止信号
+
+
 <a name="v1.2.0"></a>
 ## [v1.2.0](https://github.com/System233/ll-killer-go/compare/v1.1.4...v1.2.0) (2025-03-09)
 
