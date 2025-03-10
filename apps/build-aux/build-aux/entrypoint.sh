@@ -42,6 +42,7 @@ if (test -z "$NO_OVERLAYFS" && test -e /run/host/rootfs/dev/fuse ) 2>/dev/null >
         --rootfs /run/app.rootfs \
 	    --no-bind-rootfs \
         --socket=/run/app.unix \
+        --wait \
         -- "$KILLER_ENTRYPOINT" "${@:-bash}"
 fi
 exec $APP_DIR/ll-killer exec \
@@ -61,4 +62,5 @@ exec $APP_DIR/ll-killer exec \
     --socket=/run/app.unix \
     --rootfs=/run/app.rootfs \
     --no-bind-rootfs \
+    --wait \
     -- "$KILLER_ENTRYPOINT" "${@:-bash}"
