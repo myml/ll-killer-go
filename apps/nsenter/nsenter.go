@@ -77,15 +77,15 @@ int NsEnter(const char *nsPath,const char *nsList[],int total) {
     }
 
     // Check for failures
-	if(!nsenterQuietEnv){
-		if (count != total) {
-			for (int i = 0; i < total; i++) {
-				if (!result[i]) {
-					fprintf(stderr, "setns '%s' failed: %s\n", nsList[i], strerror(errors[i]));
+	if (count != total) {
+		if(!nsenterQuietEnv){
+				for (int i = 0; i < total; i++) {
+					if (!result[i]) {
+						fprintf(stderr, "setns '%s' failed: %s\n", nsList[i], strerror(errors[i]));
+					}
 				}
-			}
-			return -1;
 		}
+		return -1;
 	}
 
     // Clean up
@@ -100,6 +100,7 @@ int NsEnter(const char *nsPath,const char *nsList[],int total) {
 void __attribute__((constructor)) init(void) {
  	const char*nsenterEnv=getenv("KILLER_NSENTER");
  	const char*nsenterNsEnv=getenv("KILLER_NSENTER_NS");
+ 	const char*nsenterNoFailEnv=getenv("KILLER_NSENTER_NF");
 	if(nsenterEnv){
 		static const char *nsList[MAX_NS];
 		static char buffer[1000];
@@ -112,7 +113,10 @@ void __attribute__((constructor)) init(void) {
 			nsList[count++] = token;
 			token = strtok(NULL, DELIM);
 		}
-		NsEnter(nsenterEnv,nsList,count);
+		int ret=NsEnter(nsenterEnv,nsList,count);
+		if(nsenterNoFailEnv&&ret!=0){
+			exit(1);
+		}
 	}
 }
 */
@@ -122,8 +126,9 @@ var NsEnterFlag struct {
 	Pid      int
 	Gid      int
 	Uid      int
-	Nss      []string
+	NsType   []string
 	Keep     bool
+	NoFail   bool
 	Quiet    bool
 	Args     []string
 	ProcPath string
@@ -139,11 +144,17 @@ func GetExecArgs() []string {
 	if NsEnterFlag.ProcPath != "" {
 		args = append(args, "--proc", NsEnterFlag.ProcPath)
 	}
-	if !NsEnterFlag.Keep {
-		args = append(args, "--keep=false")
+	if NsEnterFlag.Keep {
+		args = append(args, "--keep")
 	}
-	if len(NsEnterFlag.Nss) > 0 {
-		args = append(args, "--nstype", strings.Join(NsEnterFlag.Nss, ","))
+	if !NsEnterFlag.NoFail {
+		args = append(args, "--no-fail=false")
+	}
+	if NsEnterFlag.Quiet {
+		args = append(args, "--quiet=false")
+	}
+	if len(NsEnterFlag.NsType) > 0 {
+		args = append(args, "--nstype", strings.Join(NsEnterFlag.NsType, ","))
 	}
 	if len(NsEnterFlag.Args) > 0 {
 		args = append(args, "--")
@@ -234,6 +245,7 @@ func NsEnterMain(cmd *cobra.Command, args []string) error {
 		os.Setenv("KILLER_NSENTER", "")
 		os.Setenv("KILLER_NSENTER_NS", "")
 		os.Setenv("KILLER_NSENTER_QUIET", "")
+		os.Setenv("KILLER_NSENTER_NF", "")
 		if !NsEnterFlag.Keep {
 			err := NsSetupUser()
 			if err != nil {
@@ -243,7 +255,10 @@ func NsEnterMain(cmd *cobra.Command, args []string) error {
 		return utils.ExecRaw(args...)
 	}
 	os.Setenv("KILLER_NSENTER", path.Join("/proc", fmt.Sprint(NsEnterFlag.Pid), "ns"))
-	os.Setenv("KILLER_NSENTER_NS", strings.Join(NsEnterFlag.Nss, ","))
+	os.Setenv("KILLER_NSENTER_NS", strings.Join(NsEnterFlag.NsType, ","))
+	if NsEnterFlag.NoFail {
+		os.Setenv("KILLER_NSENTER_NF", "1")
+	}
 	if NsEnterFlag.Quiet {
 		os.Setenv("KILLER_NSENTER_QUIET", "1")
 	}
@@ -268,9 +283,10 @@ func NsEnterNsEnterCommand() *cobra.Command {
 	cmd.Flags().StringVar(&NsEnterFlag.ProcPath, "proc", "/proc", "指定/proc路径")
 	cmd.Flags().IntVarP(&NsEnterFlag.Gid, "gid", "G", os.Getgid(), "指定命名空间内的gid，-1为自动")
 	cmd.Flags().IntVarP(&NsEnterFlag.Uid, "uid", "U", os.Getuid(), "指定命名空间内的uid，-1为自动")
-	cmd.Flags().BoolVarP(&NsEnterFlag.Keep, "keep", "K", true, "不要切换UID和GID")
-	cmd.Flags().BoolVarP(&NsEnterFlag.Quiet, "quiet", "Q", false, "不要输出命名空间错误信息")
-	cmd.Flags().StringSliceVarP(&NsEnterFlag.Nss, "nstype", "N", []string{"cgroup", "ipc", "uts", "net", "pid", "mnt", "time", "user"}, "切换的命名空间类型")
+	cmd.Flags().BoolVarP(&NsEnterFlag.Keep, "keep", "k", false, "不要切换UID和GID")
+	cmd.Flags().BoolVarP(&NsEnterFlag.Quiet, "quiet", "q", false, "不要输出命名空间错误信息")
+	cmd.Flags().BoolVarP(&NsEnterFlag.NoFail, "no-fail", "f", true, "切换命名空间失败时退出")
+	cmd.Flags().StringSliceVarP(&NsEnterFlag.NsType, "nstype", "N", []string{"cgroup", "ipc", "uts", "net", "pid", "mnt", "time", "user"}, "切换的命名空间类型")
 	cmd.Flags().SortFlags = false
 	return cmd
 }

@@ -2,6 +2,7 @@ package pty
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"ll-killer/utils"
 	"net"
@@ -9,12 +10,14 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/containerd/console"
+	"github.com/moby/sys/reexec"
 	"github.com/moby/term"
 )
 
@@ -26,16 +29,31 @@ type Pty struct {
 	connectionTimes int32
 }
 type PtyExecArgs struct {
-	Args []string
-	Pty  string
-	Path string
-	Dir  string
-	Env  []string
+	Args   []string
+	Pty    string
+	Path   string
+	Dir    string
+	NsType []string
+	// NoFail bool
+	Env []string
 }
 type PtyExecReply struct {
 	ExitCode int
 }
+type PtyNsInfoArgs struct {
+}
+type PtyNsInfoRelpy struct {
+	Pid int
+	Uid int
+	Gid int
+}
 
+func (pty *Pty) NsInfo(args *PtyNsInfoArgs, reply *PtyNsInfoRelpy) error {
+	reply.Pid = os.Getpid()
+	reply.Gid = os.Getgid()
+	reply.Uid = os.Getuid()
+	return nil
+}
 func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
 	utils.Debug("RPC:Exec:", args)
 	slave, err := os.OpenFile(args.Pty, os.O_RDWR, 0)
@@ -239,4 +257,48 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 		return 1, err
 	}
 	return reply.ExitCode, nil
+}
+
+func (pty *Pty) NsEnter(execArgs *PtyExecArgs) (int, error) {
+	utils.Debug("NsEnter", execArgs)
+	client, err := pty.connect()
+	if err != nil {
+		utils.Debug("rpc.Dial:", err)
+		return 1, err
+	}
+	defer client.Close()
+	var args PtyNsInfoArgs
+	var reply PtyNsInfoRelpy
+	if err := client.Call("Pty.NsInfo", args, &reply); err != nil {
+		utils.Debug("rpc.Pid:", err)
+		return 1, err
+	}
+	utils.Debug("NsEnter.NsInfo", reply)
+	cmdArgs := append([]string{"nsenter",
+		fmt.Sprint(reply.Pid),
+		"-kf",
+		"-N", strings.Join(execArgs.NsType, ","),
+		"--"}, execArgs.Args...)
+	cmd := exec.Command(reexec.Self(), cmdArgs...)
+	if execArgs.Env != nil {
+		cmd.Env = execArgs.Env
+	}
+	if execArgs.Dir != "" {
+		cmd.Dir = execArgs.Dir
+	}
+	if execArgs.Path != "" {
+		cmd.Path = execArgs.Path
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		exitErr, ok := err.(*exec.ExitError)
+		if ok {
+			return exitErr.ExitCode(), nil
+		}
+		return 1, err
+	}
+	return 0, nil
 }

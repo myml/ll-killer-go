@@ -12,6 +12,7 @@ import (
 	"ll-killer/utils"
 	"log"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -33,6 +34,8 @@ var ExecFlag struct {
 	Root              bool
 	NoFail            bool
 	NoBindRootFS      bool
+	NsEnter           bool
+	NsType            []string
 	FuseOverlayFS     string
 	FuseOverlayFSArgs string
 }
@@ -107,6 +110,13 @@ func GetExecArgs() []string {
 
 	if ExecFlag.NoFail {
 		args = append(args, "--no-fail")
+	}
+
+	if ExecFlag.NsEnter {
+		args = append(args, "--nsenter")
+	}
+	if len(ExecFlag.NsType) > 0 {
+		args = append(args, "--nstype", strings.Join(ExecFlag.NsType, ","))
 	}
 
 	if ExecFlag.NoBindRootFS {
@@ -245,11 +255,19 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 			ptyFlag := NewPtyFromFlags()
 			ptyFlag.Timeout = 0
 			args := &pty.PtyExecArgs{
-				Args: args,
-				Dir:  cwd,
-				Env:  os.Environ(),
+				Args:   args,
+				Dir:    cwd,
+				Env:    os.Environ(),
+				NsType: ExecFlag.NsType,
+				// NoFail: ExecFlag.NoFail,
 			}
-			exitCode, err := ptyFlag.Call(args)
+			execFunc := func(ptyFlag *pty.Pty) (int, error) {
+				if ExecFlag.NsEnter {
+					return ptyFlag.NsEnter(args)
+				}
+				return ptyFlag.Call(args)
+			}
+			exitCode, err := execFunc(ptyFlag)
 			utils.Debug("pty.Call", exitCode, err)
 			if err != nil {
 				go func() {
@@ -257,7 +275,7 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 				}()
 				go func() {
 					ptyFlag.Timeout = ExecFlag.SocketTimeout
-					exitCode, err := ptyFlag.Call(args)
+					exitCode, err := execFunc(ptyFlag)
 					if err == nil {
 						err = &utils.ExitStatus{ExitCode: exitCode}
 					}
@@ -295,6 +313,8 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
 	cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
+	cmd.Flags().BoolVar(&ExecFlag.NsEnter, "nsenter", false, "进入命名空间启动命令[暂时不可用]")
+	cmd.Flags().StringSliceVarP(&ExecFlag.NsType, "nstype", "N", []string{"user", "pid", "mnt"}, "切换的命名空间类型")
 	cmd.Flags().DurationVar(&ExecFlag.SocketTimeout, "socket-timeout", 30*time.Second, "终端套接字连接超时")
 	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFS, "fuse-overlayfs", "", "外部fuse-overlayfs命令路径(可选)")
 	cmd.Flags().StringVar(&ExecFlag.FuseOverlayFSArgs, "fuse-overlayfs-args", "", "fuse-overlayfs命令额外参数")
