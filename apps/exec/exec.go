@@ -32,6 +32,7 @@ var ExecFlag struct {
 	SocketTimeout     time.Duration
 	AutoExit          bool
 	Root              bool
+	Wait              bool
 	NoFail            bool
 	NoBindRootFS      bool
 	NsEnter           bool
@@ -122,6 +123,8 @@ func GetExecArgs() []string {
 	if ExecFlag.NoBindRootFS {
 		args = append(args, "--no-bind-rootfs")
 	}
+
+	args = append(args, fmt.Sprint("--wait=", ExecFlag.Wait))
 
 	if ExecFlag.Socket != "" {
 		args = append(args, "--socket", ExecFlag.Socket)
@@ -247,7 +250,6 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 	reexec.Register("PivotRootSystem", PivotRootSystem)
 	if !reexec.Init() {
 		if ExecFlag.Socket != "" {
-			var signal chan error = make(chan error)
 			cwd, err := os.Getwd()
 			if err != nil {
 				return err
@@ -270,6 +272,7 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 			exitCode, err := execFunc(ptyFlag)
 			utils.Debug("pty.Call", exitCode, err)
 			if err != nil {
+				var signal chan error = make(chan error, 2)
 				go func() {
 					signal <- StartMountFileSystem()
 				}()
@@ -281,7 +284,20 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 					}
 					signal <- err
 				}()
-				return <-signal
+				err = <-signal
+				if ExecFlag.Wait {
+					utils.Debug("正在等待已连接的进程全部退出")
+					bgErr := <-signal
+					if bgErr != nil {
+						if err != nil {
+							log.Println(bgErr)
+						} else {
+							err = bgErr
+						}
+					}
+					return err
+				}
+				return err
 			}
 			return &utils.ExitStatus{ExitCode: exitCode}
 		} else {
@@ -312,6 +328,7 @@ func CreateExecCommand() *cobra.Command {
 	cmd.Flags().BoolVar(&ExecFlag.NoBindRootFS, "no-bind-rootfs", false, "手动挂载rootfs")
 	cmd.Flags().BoolVar(&ExecFlag.AutoExit, "auto-exit", true, "当没有进程连接时，自动退出服务")
 	cmd.Flags().BoolVar(&ExecFlag.NoFail, "no-fail", false, "任何步骤失败时立即退出")
+	cmd.Flags().BoolVar(&ExecFlag.Wait, "wait", false, "作为服务进程等待所有进程退出")
 	cmd.Flags().BoolVar(&ExecFlag.Root, "root", false, "以root身份运行（覆盖uid/gid选项）")
 	cmd.Flags().BoolVar(&ExecFlag.NsEnter, "nsenter", false, "进入命名空间启动命令[暂时不可用]")
 	cmd.Flags().StringSliceVarP(&ExecFlag.NsType, "nstype", "N", []string{"user", "pid", "mnt"}, "切换的命名空间类型")
