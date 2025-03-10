@@ -1,8 +1,9 @@
-package main
+package pty
 
 import (
 	"errors"
 	"io"
+	"ll-killer/utils"
 	"net"
 	"net/rpc"
 	"os"
@@ -36,7 +37,7 @@ type PtyExecReply struct {
 }
 
 func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
-	Debug("RPC:Exec:", args)
+	utils.Debug("RPC:Exec:", args)
 	slave, err := os.OpenFile(args.Pty, os.O_RDWR, 0)
 	if err != nil {
 		return err
@@ -65,15 +66,15 @@ func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
 
 	err = cmd.Start()
 	if err != nil {
-		Debug("RPC:Exec:Err", err)
+		utils.Debug("RPC:Exec:Err", err)
 		return err
 	} else {
-		Debug("RPC:Exec:Pid", cmd.Process.Pid)
+		utils.Debug("RPC:Exec:Pid", cmd.Process.Pid)
 	}
 	pid := cmd.Process.Pid
 	err = cmd.Wait()
 
-	Debug("RPC:Exec:Exited", pid, err)
+	utils.Debug("RPC:Exec:Exited", pid, err)
 	var exitErr *exec.ExitError
 	if err != nil && errors.As(err, &exitErr) {
 		reply.ExitCode = exitErr.ExitCode()
@@ -83,21 +84,21 @@ func (pty *Pty) Exec(args *PtyExecArgs, reply *PtyExecReply) error {
 }
 func (pty *Pty) Serve() error {
 	if err := rpc.Register(pty); err != nil {
-		Debug("RPC:Register:", err)
+		utils.Debug("RPC:Register:", err)
 		return err
 	}
 
 	if err := os.Remove(pty.Socket); err != nil && !os.IsNotExist(err) {
-		Debug("Server:remove", err)
+		utils.Debug("Server:remove", err)
 		return err
 	}
 	listener, err := net.Listen("unix", pty.Socket)
 	if err != nil {
-		Debug("RPC:Listen:", err)
+		utils.Debug("RPC:Listen:", err)
 		return err
 	}
 	defer listener.Close()
-	Debug("RPC:Listen on:", pty.Socket)
+	utils.Debug("RPC:Listen on:", pty.Socket)
 
 	var signal chan int = make(chan int)
 	if pty.Timeout != 0 {
@@ -112,7 +113,7 @@ func (pty *Pty) Serve() error {
 			atomic.AddInt32(&pty.connectionTimes, 1)
 			if err != nil {
 				signal <- 1
-				Debug("RPC:Accept:", err)
+				utils.Debug("RPC:Accept:", err)
 				continue
 			}
 			go func() {
@@ -126,13 +127,13 @@ func (pty *Pty) Serve() error {
 	for range signal {
 		if pty.AutoExit {
 			if atomic.LoadInt32(&pty.connectionTimes) > 0 && atomic.LoadInt32(&pty.connectionCount) == 0 {
-				Debug("Server:Exit:AutoExit")
+				utils.Debug("Server:Exit:AutoExit")
 				return nil
 			}
 		}
 		if pty.Timeout != 0 {
 			if atomic.LoadInt32(&pty.connectionTimes) == 0 {
-				Debug("Server:Exit:Timeout")
+				utils.Debug("Server:Exit:Timeout")
 				return nil
 			}
 		}
@@ -159,7 +160,7 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 
 	client, err := pty.connect()
 	if err != nil {
-		Debug("rpc.Dial:", err)
+		utils.Debug("rpc.Dial:", err)
 		return 1, err
 	}
 	defer client.Close()
@@ -167,7 +168,7 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 	if args.Pty == "" {
 		con, slavePath, err := console.NewPty()
 		if err != nil {
-			Debug("console.NewPty:", err)
+			utils.Debug("console.NewPty:", err)
 			return 1, err
 		}
 		defer con.Close()
@@ -189,23 +190,23 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 				if sig == syscall.SIGWINCH {
 					winSize, err := term.GetWinsize(os.Stdin.Fd())
 					if err != nil {
-						Debug("term.GetSize:", err)
+						utils.Debug("term.GetSize:", err)
 						continue
 					}
 					err = term.SetWinsize(con.Fd(), winSize)
 					if err != nil {
-						Debug("term.SetWinsize:", err)
+						utils.Debug("term.SetWinsize:", err)
 					}
 				} else {
 					var pgrp int
 					_, _, errno := syscall.Syscall(syscall.SYS_IOCTL, con.Fd(), uintptr(syscall.TIOCGPGRP), uintptr(unsafe.Pointer(&pgrp)))
 					if errno != 0 {
-						Debug("syscall.Ioctl:", err)
+						utils.Debug("syscall.Ioctl:", err)
 						continue
 					}
 					err = syscall.Kill(-pgrp, sig.(syscall.Signal))
 					if err != nil {
-						Debug("syscall.Kill:", err)
+						utils.Debug("syscall.Kill:", err)
 						continue
 					}
 				}
@@ -216,7 +217,7 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 		if term.IsTerminal(os.Stdin.Fd()) {
 			state, err := term.SetRawTerminal(os.Stdin.Fd())
 			if err != nil {
-				Debug("term.SetRawTerminal:", err)
+				utils.Debug("term.SetRawTerminal:", err)
 				return 1, err
 			} else {
 				defer term.RestoreTerminal(os.Stdin.Fd(), state)
@@ -231,10 +232,10 @@ func (pty *Pty) Call(args *PtyExecArgs) (int, error) {
 
 	}
 
-	Debug("Pty.SelfPID", os.Getpid())
+	utils.Debug("Pty.SelfPID", os.Getpid())
 	var reply PtyExecReply
 	if err := client.Call("Pty.Exec", args, &reply); err != nil {
-		Debug("rpc.Call:", err)
+		utils.Debug("rpc.Call:", err)
 		return 1, err
 	}
 	return reply.ExitCode, nil

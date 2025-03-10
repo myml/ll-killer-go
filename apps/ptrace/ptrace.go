@@ -4,7 +4,7 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _ptrace
 
 import (
 	"fmt"
@@ -13,7 +13,8 @@ import (
 	"runtime"
 	"syscall"
 
-	ptrace "ll-killer/ptrace"
+	internal "ll-killer/apps/ptrace/internal"
+	"ll-killer/utils"
 
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
@@ -26,12 +27,14 @@ const PtraceCommandHelp = `
 <program> ptrace -- 要处理的命令
 `
 
+const IsSupported = internal.IsSupported
+
 func Ptrace(self string, args []string) {
 	args = append([]string{self, "ptrace", "--"}, args...)
-	Exec(args...)
+	utils.Exec(args...)
 }
 func HandlePtraceEvent(process *os.Process, pid int) error {
-	Debug("HandlePtraceEvent", pid)
+	utils.Debug("HandlePtraceEvent", pid)
 	var usage unix.Rusage
 	var wstatus unix.WaitStatus
 	var wpid int
@@ -89,13 +92,13 @@ func HandlePtraceEvent(process *os.Process, pid int) error {
 				Last confirmed on 2.6.38.6.
 			*/
 			if wpid == process.Pid || process.Signal(syscall.Signal(0)) != nil {
-				return &ExitStatus{ExitCode: wstatus.ExitStatus()}
+				return &utils.ExitStatus{ExitCode: wstatus.ExitStatus()}
 			}
 			continue
 		}
 		if wstatus.Signaled() {
 			if wpid == process.Pid || process.Signal(syscall.Signal(0)) != nil {
-				return &ExitStatus{ExitCode: -int(wstatus.Signal())}
+				return &utils.ExitStatus{ExitCode: -int(wstatus.Signal())}
 			}
 			continue
 		}
@@ -118,7 +121,7 @@ func HandlePtraceEvent(process *os.Process, pid int) error {
 		if IsError(err) {
 			return fmt.Errorf("PtraceGetRegs: %#x, %v", wstatus, err)
 		}
-		err = ptrace.PtraceHandle(wpid, regs)
+		err = internal.PtraceHandle(wpid, regs)
 		if IsError(err) {
 			return fmt.Errorf("PtraceHandle:%v", err)
 		}
@@ -129,12 +132,12 @@ func HandlePtraceEvent(process *os.Process, pid int) error {
 	}
 }
 func PtraceMain(cmd *cobra.Command, args []string) error {
-	Debug("PtraceMain", args)
+	utils.Debug("PtraceMain", args)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	if len(args) == 0 {
-		args = []string{DefaultShell()}
+		args = []string{utils.DefaultShell()}
 	}
 
 	binary, err := exec.LookPath(args[0])
@@ -164,9 +167,9 @@ func CreatePtraceCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "ptrace",
 		Short: "修正系统调用(chown)",
-		Long:  BuildHelpMessage(PtraceCommandHelp),
+		Long:  utils.BuildHelpMessage(PtraceCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(PtraceMain(cmd, args))
+			utils.ExitWith(PtraceMain(cmd, args))
 		},
 	}
 

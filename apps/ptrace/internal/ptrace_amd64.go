@@ -6,7 +6,7 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package ptrace
+package internal
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var IsSupported = true
+const IsSupported = true
 
 func PtraceHandle(pid int, regs unix.PtraceRegs) error {
 	if regs.Orig_rax == syscall.SYS_CHOWN || regs.Orig_rax == syscall.SYS_FCHOWN || regs.Orig_rax == syscall.SYS_LCHOWN {

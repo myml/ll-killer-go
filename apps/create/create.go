@@ -4,12 +4,14 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _create
 
 import (
 	"bufio"
 	"fmt"
 	"io"
+	buildaux "ll-killer/apps/build-aux"
+	"ll-killer/utils"
 	"log"
 	"net/http"
 	"os"
@@ -109,7 +111,7 @@ func SetupPackageMetadata(cmd *cobra.Command) error {
 		ConfigData.Package.Name = metadata["runtime"]
 	}
 	if metadata["apt-sources"] != "" {
-		if CreateFlag.Force || !IsExist(SourceListFile) {
+		if CreateFlag.Force || !utils.IsExist(utils.SourceListFile) {
 			re := regexp.MustCompile(`^(http\S+?)\s+(\S+?)/(\S+)`)
 			entries := strings.Split(metadata["apt-sources"], "\n")
 			parsed := []string{}
@@ -135,14 +137,14 @@ func SetupPackageMetadata(cmd *cobra.Command) error {
 				parsed = append(parsed, entry)
 			}
 			if len(parsed) > 0 {
-				err := WriteFile(SourceListFile, []byte(strings.Join(parsed, "\n")), 0755, CreateFlag.Force)
+				err := utils.WriteFile(utils.SourceListFile, []byte(strings.Join(parsed, "\n")), 0755, CreateFlag.Force)
 				if err != nil {
 					return err
 				}
-				log.Println("created: ", SourceListFile)
+				log.Println("created: ", utils.SourceListFile)
 			}
 		} else {
-			log.Println("skip: ", SourceListFile)
+			log.Println("skip: ", utils.SourceListFile)
 		}
 	}
 	return nil
@@ -205,17 +207,17 @@ func ParsePackageMetadata(stream io.Reader) (map[string]string, error) {
 func SetupProject(target string) error {
 	ConfigData.Command[0] = strings.ReplaceAll(ConfigData.Command[0], "<APPID>", ConfigData.Package.ID)
 
-	err := DumpYaml(kLinglongYaml, ConfigData)
+	err := utils.DumpYaml(utils.LinglongYaml, ConfigData)
 	if err != nil {
 		return err
 	}
-	log.Println("created:", kLinglongYaml)
+	log.Println("created:", utils.LinglongYaml)
 	return nil
 }
 
 func CreateMain(cmd *cobra.Command, args []string) error {
 
-	if err := ExtractBuildAuxFiles(CreateFlag.Force); err != nil {
+	if err := buildaux.ExtractBuildAuxFiles(CreateFlag.Force); err != nil {
 		return err
 	}
 
@@ -223,12 +225,12 @@ func CreateMain(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := SetupProject(kLinglongYaml); err != nil {
+	if err := SetupProject(utils.LinglongYaml); err != nil {
 		return err
 	}
 
 	if !CreateFlag.NoBuild {
-		return RunCommand("ll-builder", "build", "--exec", "true")
+		return utils.RunCommand("ll-builder", "build", "--exec", "true")
 	}
 
 	return nil
@@ -238,10 +240,10 @@ func CreateCreateCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "create",
 		Short:   "创建模板项目",
-		Example: BuildHelpMessage(CreateCommandHelp),
-		Long:    BuildHelpMessage(CreateCommandDescription),
+		Example: utils.BuildHelpMessage(CreateCommandHelp),
+		Long:    utils.BuildHelpMessage(CreateCommandDescription),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(CreateMain(cmd, args))
+			utils.ExitWith(CreateMain(cmd, args))
 		},
 	}
 	cmd.Flags().StringVar(&ConfigData.Version, "spec", "1", "玲珑yaml版本")

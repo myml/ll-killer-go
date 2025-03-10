@@ -4,9 +4,11 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _script
 
 import (
+	"ll-killer/utils"
+
 	"github.com/spf13/cobra"
 )
 
@@ -23,17 +25,16 @@ KILLER_EXEC=<program> <构建脚本> [参数...]
 `
 
 func ScriptMain(cmd *cobra.Command, args []string) error {
-
-	return ExecRaw(args...)
+	return utils.ExecRaw(args...)
 }
 
 func CreateScriptCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "script",
 		Short: "执行自定义构建流程",
-		Long:  BuildHelpMessage(ScriptCommandHelp),
+		Long:  utils.BuildHelpMessage(ScriptCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(ScriptMain(cmd, args))
+			utils.ExitWith(ScriptMain(cmd, args))
 		},
 	}
 

@@ -4,9 +4,13 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _commit
 
-import "github.com/spf13/cobra"
+import (
+	"ll-killer/utils"
+
+	"github.com/spf13/cobra"
+)
 
 var CommitFlag struct {
 	Self  string
@@ -16,7 +20,7 @@ var CommitFlag struct {
 
 func CommitMain(cmd *cobra.Command, args []string) error {
 	args = append([]string{"ll-builder", "build"}, args...)
-	Exec(args...)
+	utils.Exec(args...)
 	return nil
 }
 func CreateCommitCommand() *cobra.Command {
@@ -26,7 +30,7 @@ func CreateCommitCommand() *cobra.Command {
 		Long:               "此命令执行ll-builder build，用于提供一致性体验。",
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(CommitMain(cmd, args))
+			utils.ExitWith(CommitMain(cmd, args))
 		},
 	}
 

@@ -7,13 +7,13 @@
 * https://opensource.org/licenses/MIT
  */
 
-package ptrace
+package internal
 
 import (
 	"golang.org/x/sys/unix"
 )
 
-var IsSupported = false
+const IsSupported = false
 
 func PtraceHandle(pid int, regs unix.PtraceRegs) error {
 	return nil

@@ -4,7 +4,7 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package utils
 
 import (
 	"errors"
@@ -36,11 +36,11 @@ const (
 	AptCacheDir       = AptDir + "/cache"
 	AptConfDir        = "apt.conf.d"
 	AptConfFile       = AptConfDir + "/ll-killer.conf"
-	kLinglongYaml     = "linglong.yaml"
-	kKillerCommands   = "KILLER_COMMANDS"
-	kKillerDebug      = "KILLER_DEBUG"
-	kMountArgsSep     = ":"
-	kMountArgsItemSep = "+"
+	LinglongYaml      = "linglong.yaml"
+	KillerCommands    = "KILLER_COMMANDS"
+	KillerDebug       = "KILLER_DEBUG"
+	MountArgsSep      = ":"
+	MountArgsItemSep  = "+"
 	FuseOverlayFSType = "fuse-overlayfs"
 )
 
@@ -254,7 +254,7 @@ func Mount(opt *MountOption) error {
 	}
 	if opt.FSType == "merge" {
 		filesystem := make(map[string]string)
-		excludes := append([]string{opt.Target}, strings.Split(opt.Data, kMountArgsItemSep)...)
+		excludes := append([]string{opt.Target}, strings.Split(opt.Data, MountArgsItemSep)...)
 		if opt.Data == "" {
 			excludes = append(excludes, "/tmp", "/proc", "/dev", "/sys", "/run", "/var/run")
 		}
@@ -269,7 +269,7 @@ func Mount(opt *MountOption) error {
 		if err != nil {
 			return err
 		}
-		sources := strings.Split(opt.Source, kMountArgsItemSep)
+		sources := strings.Split(opt.Source, MountArgsItemSep)
 		for index, path := range sources {
 			result, err := filepath.Abs(path)
 			if err != nil {
@@ -441,7 +441,7 @@ var MountFlagMap = map[string]int{
 }
 
 func ParseMountFlag(flag string) int {
-	flags := strings.Split(flag, kMountArgsItemSep)
+	flags := strings.Split(flag, MountArgsItemSep)
 	value := 0
 	for _, flag := range flags {
 		if flag == "" {
@@ -457,7 +457,7 @@ func ParseMountFlag(flag string) int {
 	return value
 }
 func ParseMountOption(item string) MountOption {
-	chunks := strings.SplitN(item, kMountArgsSep, 5)
+	chunks := strings.SplitN(item, MountArgsSep, 5)
 	opt := MountOption{}
 	if len(chunks) >= 2 {
 		opt.Source = chunks[0]

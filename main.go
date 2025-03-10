@@ -8,7 +8,19 @@ package main
 
 import (
 	"fmt"
-	"ll-killer/ptrace"
+	_apt "ll-killer/apps/apt"
+	_build "ll-killer/apps/build"
+	_buildaux "ll-killer/apps/build-aux"
+	_clean "ll-killer/apps/clean"
+	_commit "ll-killer/apps/commit"
+	_create "ll-killer/apps/create"
+	_exec "ll-killer/apps/exec"
+	_export "ll-killer/apps/export"
+	_overlay "ll-killer/apps/overlay"
+	_ptrace "ll-killer/apps/ptrace"
+	_run "ll-killer/apps/run"
+	_script "ll-killer/apps/script"
+	"ll-killer/utils"
 	"log"
 	"os"
 
@@ -32,12 +44,12 @@ const MainCommandHelp = `ll-killer 是一个工具，旨在解决玲珑容器应
 `
 
 func main() {
-	if os.Getenv(kKillerDebug) != "" {
-		GlobalFlag.Debug = true
+	if os.Getenv(utils.KillerDebug) != "" {
+		utils.GlobalFlag.Debug = true
 	}
-	err := SetupEnvVar()
+	err := utils.SetupEnvVar()
 	if err != nil {
-		Debug("SetupEnvVar:", err)
+		utils.Debug("SetupEnvVar:", err)
 	}
 	cobra.EnableCommandSorting = false
 	pid := os.Getpid()
@@ -47,29 +59,29 @@ func main() {
 	app := cobra.Command{
 		Use:     "ll-killer",
 		Short:   Usage,
-		Example: BuildHelpMessage(MainCommandHelp),
+		Example: utils.BuildHelpMessage(MainCommandHelp),
 	}
 	app.Flags().SortFlags = false
 	app.InheritedFlags().SortFlags = false
 	app.LocalFlags().SortFlags = false
-	app.Flags().BoolVar(&GlobalFlag.Debug, "debug", GlobalFlag.Debug, "显示调试信息")
-	app.AddCommand(CreateAPTCommand(),
-		CreateBuildCommand(),
-		CreateExecCommand(),
-		CreateRunCommand(),
-		CreateCreateCommand(),
-		CreateCommitCommand(),
-		CreateCleanCommand(),
-		CreateExportCommand(),
-		CreateBuildAuxCommand(),
-		CreateScriptCommand(),
-		CreateOverlayCommand())
-	app.Version = fmt.Sprintf("%s/%s", Version, BuildTime)
-	if ptrace.IsSupported {
-		app.AddCommand(CreatePtraceCommand())
+	app.Flags().BoolVar(&utils.GlobalFlag.Debug, "debug", utils.GlobalFlag.Debug, "显示调试信息")
+	app.AddCommand(_apt.CreateAPTCommand(),
+		_build.CreateBuildCommand(),
+		_exec.CreateExecCommand(),
+		_run.CreateRunCommand(),
+		_create.CreateCreateCommand(),
+		_commit.CreateCommitCommand(),
+		_clean.CreateCleanCommand(),
+		_export.CreateExportCommand(),
+		_buildaux.CreateBuildAuxCommand(),
+		_script.CreateScriptCommand(),
+		_overlay.CreateOverlayCommand())
+	app.Version = fmt.Sprintf("%s/%s", utils.Version, utils.BuildTime)
+	if _ptrace.IsSupported {
+		app.AddCommand(_ptrace.CreatePtraceCommand())
 	}
 	if err := app.Execute(); err != nil {
-		ExitWith(err)
+		utils.ExitWith(err)
 	}
 
 }

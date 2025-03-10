@@ -4,9 +4,10 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _apt
 
 import (
+	"ll-killer/utils"
 	"os"
 	"syscall"
 
@@ -38,15 +39,15 @@ func MountAPT() {
 		    apt -o APT::Sandbox::User="root" update -y
 		    reexec shell
 	*/
-	err := os.MkdirAll(AptDir, 0755)
+	err := os.MkdirAll(utils.AptDir, 0755)
 	if err != nil {
-		ExitWith(err)
+		utils.ExitWith(err)
 	}
-	err = MkdirAlls([]string{AptDataDir, AptCacheDir, AptConfDir}, 0755)
+	err = utils.MkdirAlls([]string{utils.AptDataDir, utils.AptCacheDir, utils.AptConfDir}, 0755)
 	if err != nil {
-		ExitWith(err)
+		utils.ExitWith(err)
 	}
-	err = MountAll([]MountOption{
+	err = utils.MountAll([]utils.MountOption{
 		{
 			Source: "sources.list.d",
 			Target: "/etc/apt/sources.list.d",
@@ -73,27 +74,27 @@ func MountAPT() {
 			Flags:  syscall.MS_BIND,
 		},
 		{
-			Source: AptDataDir,
+			Source: utils.AptDataDir,
 			Target: "/var/lib/apt",
 			Flags:  syscall.MS_BIND,
 		},
 		{
-			Source: AptCacheDir,
+			Source: utils.AptCacheDir,
 			Target: "/var/cache",
 			Flags:  syscall.MS_BIND,
 		},
 	})
 
 	if err != nil {
-		ExitWith(err, "MountAll")
+		utils.ExitWith(err, "MountAll")
 	}
-	Exec(APTFlag.Args...)
+	utils.Exec(APTFlag.Args...)
 }
 func APTMain(cmd *cobra.Command, args []string) error {
 	APTFlag.Args = args
 	reexec.Register("MountAPT", MountAPT)
 	if !reexec.Init() {
-		return SwitchTo("MountAPT", &SwitchFlags{UID: 0, GID: 0, Cloneflags: syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER})
+		return utils.SwitchTo("MountAPT", &utils.SwitchFlags{UID: 0, GID: 0, Cloneflags: syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER})
 	}
 	return nil
 }
@@ -101,9 +102,9 @@ func CreateAPTCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "apt",
 		Short: "进入隔离的APT环境",
-		Long:  BuildHelpMessage(APTCommandHelp),
+		Long:  utils.BuildHelpMessage(APTCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(APTMain(cmd, args))
+			utils.ExitWith(APTMain(cmd, args))
 		},
 	}
 }

@@ -4,7 +4,7 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package utils
 
 import (
 	"fmt"
@@ -14,12 +14,11 @@ import (
 	"unsafe"
 
 	"github.com/moby/sys/reexec"
-	"github.com/spf13/cobra"
 )
 
 /*
 #cgo pkg-config: fuse3
-#cgo LDFLAGS: -L. -lfuse-overlayfs -lgnu
+#cgo LDFLAGS: -L.. -lfuse-overlayfs -lgnu
 #include <stdlib.h>
 extern int fuse_ovl_main(int argc, char** argv);
 */
@@ -159,22 +158,4 @@ func FuseOvlMount(opt FuseOvlMountFlag) error {
 	args = append(args, opt.Args...)
 
 	return FuseOvlMain(args)
-}
-
-func OverlayMain(cmd *cobra.Command, args []string) error {
-	return FuseOvlMain(args)
-}
-
-func CreateOverlayCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:                "overlay",
-		Short:              "内置fuse-overlayfs挂载",
-		Long:               "此命令调用内嵌的fuse-overlayfs程序实现overlay挂载",
-		DisableFlagParsing: true,
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(OverlayMain(cmd, args))
-		},
-	}
-
-	return cmd
 }

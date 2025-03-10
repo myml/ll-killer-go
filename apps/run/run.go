@@ -4,9 +4,13 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _run
 
-import "github.com/spf13/cobra"
+import (
+	"ll-killer/utils"
+
+	"github.com/spf13/cobra"
+)
 
 var RunFlag struct {
 	Self  string
@@ -16,7 +20,7 @@ var RunFlag struct {
 
 func RunMain(cmd *cobra.Command, args []string) error {
 	args = append([]string{"ll-builder", "run"}, args...)
-	Exec(args...)
+	utils.Exec(args...)
 	return nil
 }
 
@@ -27,7 +31,7 @@ func CreateRunCommand() *cobra.Command {
 		Long:               "此命令执行ll-builder run，用于提供一致性体验。",
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(RunMain(cmd, args))
+			utils.ExitWith(RunMain(cmd, args))
 		},
 	}
 

@@ -4,10 +4,12 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _exec
 
 import (
 	"fmt"
+	"ll-killer/pty"
+	"ll-killer/utils"
 	"log"
 	"os"
 	"syscall"
@@ -134,80 +136,80 @@ func GetExecArgs() []string {
 	return args
 }
 
-func NewPtyFromFlags() *Pty {
-	return &Pty{
+func NewPtyFromFlags() *pty.Pty {
+	return &pty.Pty{
 		Socket:   ExecFlag.Socket,
 		Timeout:  ExecFlag.SocketTimeout,
 		AutoExit: ExecFlag.AutoExit,
 	}
 }
 func PivotRootSystem() {
-	Debug("PivotRootSystem")
+	utils.Debug("PivotRootSystem")
 	if !ExecFlag.NoBindRootFS {
-		err := MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
+		err := utils.MountBind(ExecFlag.RootFS, ExecFlag.RootFS, 0)
 		if err != nil {
-			ExitWith(err)
+			utils.ExitWith(err)
 		}
 	}
 	oldRootFS := fmt.Sprint(ExecFlag.RootFS, ExecFlag.RootFS)
-	Debug("PivotRoot", ExecFlag.RootFS, oldRootFS)
+	utils.Debug("PivotRoot", ExecFlag.RootFS, oldRootFS)
 	if err := syscall.PivotRoot(ExecFlag.RootFS, oldRootFS); err != nil {
-		ExitWith(err)
+		utils.ExitWith(err)
 	}
 	ExecShell()
 }
 
 func ExecSystem() {
-	Debug("ExecSystem")
+	utils.Debug("ExecSystem")
 	if ExecFlag.Socket != "" {
 		pty := NewPtyFromFlags()
 		pty.Serve()
 	} else {
-		Exec(ExecFlag.Args...)
+		utils.Exec(ExecFlag.Args...)
 	}
 }
 func ExecShell() {
 	if ExecFlag.UID == 0 && ExecFlag.GID == 0 || ExecFlag.Root {
-		Exec(ExecFlag.Args...)
+		utils.Exec(ExecFlag.Args...)
 		return
 	}
-	err := SwitchTo("ExecSystem", &SwitchFlags{
+	err := utils.SwitchTo("ExecSystem", &utils.SwitchFlags{
 		UID:        ExecFlag.UID,
 		GID:        ExecFlag.GID,
 		Cloneflags: syscall.CLONE_NEWUSER,
 	})
 	if err != nil {
-		ExitWith(err)
+		utils.ExitWith(err)
 	}
 }
 func MountFileSystem() {
-	Debug("MountFileSystem")
+	utils.Debug("MountFileSystem")
 	isFuseOverlayFs := false
 	for _, mount := range ExecFlag.Mounts {
-		opt := ParseMountOption(mount)
+		opt := utils.ParseMountOption(mount)
 		err := opt.Mount()
 		if err != nil {
 			if ExecFlag.NoFail {
-				ExitWith(err, "mount", mount)
+				utils.ExitWith(err, "mount", mount)
 			}
 			log.Println(err)
 		}
-		if opt.FSType == FuseOverlayFSType {
+		if opt.FSType == utils.FuseOverlayFSType {
 			isFuseOverlayFs = true
 		}
 	}
 
 	if ExecFlag.RootFS != "" {
 		oldRootFS := fmt.Sprint(ExecFlag.RootFS, ExecFlag.RootFS)
-		err := MkdirAlls([]string{oldRootFS}, 0755)
+		err := utils.MkdirAlls([]string{oldRootFS}, 0755)
 		if err != nil {
-			ExitWith(err)
+			utils.ExitWith(err)
 		}
 
 		if isFuseOverlayFs {
-			err = SwitchTo("PivotRootSystem", &SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
+			err = utils.SwitchTo("PivotRootSystem", &utils.SwitchFlags{Cloneflags: syscall.CLONE_NEWNS})
 			if err != nil {
-				ExitWith(err)
+				utils.ExitWith(err)
 			}
 		} else {
 			PivotRootSystem()
@@ -217,7 +219,7 @@ func MountFileSystem() {
 	}
 }
 func StartMountFileSystem() error {
-	return SwitchTo("MountFileSystem", &SwitchFlags{
+	return utils.SwitchTo("MountFileSystem", &utils.SwitchFlags{
 		UID:           0,
 		GID:           0,
 		Cloneflags:    syscall.CLONE_NEWNS | syscall.CLONE_NEWUSER,
@@ -226,10 +228,10 @@ func StartMountFileSystem() error {
 	})
 }
 func ExecMain(cmd *cobra.Command, args []string) error {
-	Debug("ExecMain", args)
+	utils.Debug("ExecMain", args)
 	ExecFlag.Args = args
-	GlobalFlag.FuseOverlayFS = ExecFlag.FuseOverlayFS
-	GlobalFlag.FuseOverlayFSArgs = ExecFlag.FuseOverlayFSArgs
+	utils.GlobalFlag.FuseOverlayFS = ExecFlag.FuseOverlayFS
+	utils.GlobalFlag.FuseOverlayFSArgs = ExecFlag.FuseOverlayFSArgs
 	reexec.Register("MountFileSystem", MountFileSystem)
 	reexec.Register("ExecSystem", ExecSystem)
 	reexec.Register("PivotRootSystem", PivotRootSystem)
@@ -240,30 +242,30 @@ func ExecMain(cmd *cobra.Command, args []string) error {
 			if err != nil {
 				return err
 			}
-			pty := NewPtyFromFlags()
-			pty.Timeout = 0
-			args := &PtyExecArgs{
+			ptyFlag := NewPtyFromFlags()
+			ptyFlag.Timeout = 0
+			args := &pty.PtyExecArgs{
 				Args: args,
 				Dir:  cwd,
 				Env:  os.Environ(),
 			}
-			exitCode, err := pty.Call(args)
-			Debug("pty.Call", exitCode, err)
+			exitCode, err := ptyFlag.Call(args)
+			utils.Debug("pty.Call", exitCode, err)
 			if err != nil {
 				go func() {
 					signal <- StartMountFileSystem()
 				}()
 				go func() {
-					pty.Timeout = ExecFlag.SocketTimeout
-					exitCode, err := pty.Call(args)
+					ptyFlag.Timeout = ExecFlag.SocketTimeout
+					exitCode, err := ptyFlag.Call(args)
 					if err == nil {
-						err = &ExitStatus{ExitCode: exitCode}
+						err = &utils.ExitStatus{ExitCode: exitCode}
 					}
 					signal <- err
 				}()
 				return <-signal
 			}
-			return &ExitStatus{ExitCode: exitCode}
+			return &utils.ExitStatus{ExitCode: exitCode}
 		} else {
 			return StartMountFileSystem()
 		}
@@ -275,9 +277,9 @@ func CreateExecCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "exec",
 		Short: "进入运行时环境",
-		Long:  BuildHelpMessage(ExecCommandHelp),
+		Long:  utils.BuildHelpMessage(ExecCommandHelp),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(ExecMain(cmd, args))
+			utils.ExitWith(ExecMain(cmd, args))
 		},
 	}
 

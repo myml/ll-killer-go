@@ -4,9 +4,13 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _export
 
-import "github.com/spf13/cobra"
+import (
+	"ll-killer/utils"
+
+	"github.com/spf13/cobra"
+)
 
 var ExportFlag struct {
 	Self  string
@@ -16,7 +20,7 @@ var ExportFlag struct {
 
 func ExportMain(cmd *cobra.Command, args []string) error {
 	args = append([]string{"ll-builder", "export"}, args...)
-	Exec(args...)
+	utils.Exec(args...)
 	return nil
 }
 
@@ -27,7 +31,7 @@ func CreateExportCommand() *cobra.Command {
 		Long:               "此命令执行ll-builder export，用于提供一致性体验。",
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(ExportMain(cmd, args))
+			utils.ExitWith(ExportMain(cmd, args))
 		},
 	}
 

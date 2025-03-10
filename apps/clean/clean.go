@@ -4,9 +4,11 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _clean
 
 import (
+	"ll-killer/utils"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,14 +19,14 @@ var CleanFlag struct {
 
 func CleanMain(cmd *cobra.Command, args []string) error {
 	if CleanFlag.FileSystem {
-		err := RunCommand("rm", "-rf", FileSystemDir)
+		err := utils.RunCommand("rm", "-rf", utils.FileSystemDir)
 		if err != nil {
 			return err
 		}
 	}
 
 	if CleanFlag.APT {
-		err := RunCommand("rm", "-rf", AptDir)
+		err := utils.RunCommand("rm", "-rf", utils.AptDir)
 		if err != nil {
 			return err
 		}
@@ -37,7 +39,7 @@ func CreateCleanCommand() *cobra.Command {
 		Use:   "clean",
 		Short: "清除构建内容",
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(CleanMain(cmd, args))
+			utils.ExitWith(CleanMain(cmd, args))
 		},
 	}
 

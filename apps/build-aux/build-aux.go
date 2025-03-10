@@ -4,12 +4,13 @@
 * This software is released under the MIT License.
 * https://opensource.org/licenses/MIT
  */
-package main
+package _buildaux
 
 import (
 	"embed"
 	"errors"
 	"io/fs"
+	"ll-killer/utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -49,7 +50,7 @@ func embedFilesToDisk(destDir string, force bool) error {
 		destPath := filepath.Join(destDir, path)
 
 		if !d.IsDir() {
-			if !force && IsExist(destPath) {
+			if !force && utils.IsExist(destPath) {
 				log.Println("skip:", destPath)
 				return nil
 			}
@@ -58,7 +59,7 @@ func embedFilesToDisk(destDir string, force bool) error {
 				return err
 			}
 			defer srcFile.Close()
-			err = CopyFile(destPath, srcFile, 0755, force)
+			err = utils.CopyFile(destPath, srcFile, 0755, force)
 			if err != nil {
 				return err
 			}
@@ -75,7 +76,7 @@ func embedFilesToDisk(destDir string, force bool) error {
 	if err != nil {
 		return err
 	}
-	err = CopySymlink("Makefile", "build-aux/Makefile", force)
+	err = utils.CopySymlink("Makefile", "build-aux/Makefile", force)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
 			log.Println("skip:", "Makefile")
@@ -88,7 +89,7 @@ func embedFilesToDisk(destDir string, force bool) error {
 }
 
 func SetupKillerExec(target string) error {
-	if !BuildAuxFlag.Force && IsExist(KillerExec) {
+	if !BuildAuxFlag.Force && utils.IsExist(utils.KillerExec) {
 		log.Println("skip:", target)
 		return nil
 	}
@@ -96,7 +97,7 @@ func SetupKillerExec(target string) error {
 	if err != nil {
 		return err
 	}
-	isSame, err := IsSameFile(target, self)
+	isSame, err := utils.IsSameFile(target, self)
 	if err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func SetupKillerExec(target string) error {
 		log.Println("skip same:", target)
 		return nil
 	}
-	err = CopyFileIO(reexec.Self(), target)
+	err = utils.CopyFileIO(reexec.Self(), target)
 	if err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ func ExtractBuildAuxFiles(force bool) error {
 	if err := embedFilesToDisk(".", force); err != nil {
 		return err
 	}
-	if err := SetupKillerExec(KillerExec); err != nil {
+	if err := SetupKillerExec(utils.KillerExec); err != nil {
 		return err
 	}
 	return nil
@@ -131,7 +132,7 @@ func CreateBuildAuxCommand() *cobra.Command {
 		Short: "创建辅助构建脚本",
 		Long:  BuildAuxCommandHelp,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitWith(BuildAuxMain(cmd, args))
+			utils.ExitWith(BuildAuxMain(cmd, args))
 		},
 	}
 	cmd.Flags().BoolVar(&BuildAuxFlag.Force, "force", false, "强制覆盖已存在文件")
