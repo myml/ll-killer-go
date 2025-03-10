@@ -16,6 +16,7 @@ import (
 	_create "ll-killer/apps/create"
 	_exec "ll-killer/apps/exec"
 	_export "ll-killer/apps/export"
+	_layer "ll-killer/apps/layer"
 	_overlay "ll-killer/apps/overlay"
 	_ptrace "ll-killer/apps/ptrace"
 	_run "ll-killer/apps/run"
@@ -52,9 +53,12 @@ func main() {
 		utils.Debug("SetupEnvVar:", err)
 	}
 	cobra.EnableCommandSorting = false
-	pid := os.Getpid()
 	log.SetFlags(0)
-	log.SetPrefix(fmt.Sprintf("[PID %d] ", pid))
+
+	if utils.GlobalFlag.Debug {
+		pid := os.Getpid()
+		log.SetPrefix(fmt.Sprintf("[PID %d] ", pid))
+	}
 
 	app := cobra.Command{
 		Use:     "ll-killer",
@@ -71,6 +75,7 @@ func main() {
 		_run.CreateRunCommand(),
 		_create.CreateCreateCommand(),
 		_commit.CreateCommitCommand(),
+		_layer.CreateLayerCommand(),
 		_clean.CreateCleanCommand(),
 		_export.CreateExportCommand(),
 		_buildaux.CreateBuildAuxCommand(),
