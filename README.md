@@ -1,14 +1,14 @@
 # ll-killer-go - 玲珑杀手Go <!-- omit from toc -->
 
+[![Build](https://github.com/System233/ll-killer-go/actions/workflows/build.yaml/badge.svg)](https://github.com/System233/ll-killer-go/actions/workflows/build.yaml) 
+
 ## 项目简介 <!-- omit from toc -->
 
 本项目是[Linglong Killer Self-Service (ll-killer 玲珑杀手)](https://github.com/System233/linglong-killer-self-service)的重写版本，去除了构建阶段的shell脚本，全部采用go实现，并添加了一些增强功能。
 
 `ll-killer-go` 是一款专为解决玲珑容器应用构建问题而设计的命令行工具。它帮助开发者快速创建、构建和生成玲珑容器应用项目，同时提供一整套辅助构建与调试功能。使用该工具，用户可以在玲珑容器中获得与传统容器（如 `docker`）类似的构建体验，包括对特权命令的支持和 `apt` 安装等功能，免去了手动解压软件包（如 `deb`）和修复依赖库查找路径的繁琐操作。`ll-killer-go` 通过重建自由的容器环境，确保构建过程的一致性与可靠性，极大地提高了开发效率和可维护性。
 
-[![Build](https://github.com/System233/ll-killer-go/actions/workflows/build.yaml/badge.svg)](https://github.com/System233/ll-killer-go/actions/workflows/build.yaml) 
-
-### [更新日志](CHANGELOG)
+### [更新日志](CHANGELOG.md)
 
 ### 功能概述
 - **创建项目**：自动创建项目所需的配置文件和辅助脚本，初始化项目环境。
