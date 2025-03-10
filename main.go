@@ -17,6 +17,7 @@ import (
 	_exec "ll-killer/apps/exec"
 	_export "ll-killer/apps/export"
 	_layer "ll-killer/apps/layer"
+	_nsenter "ll-killer/apps/nsenter"
 	_overlay "ll-killer/apps/overlay"
 	_ptrace "ll-killer/apps/ptrace"
 	_run "ll-killer/apps/run"
@@ -80,7 +81,8 @@ func main() {
 		_export.CreateExportCommand(),
 		_buildaux.CreateBuildAuxCommand(),
 		_script.CreateScriptCommand(),
-		_overlay.CreateOverlayCommand())
+		_overlay.CreateOverlayCommand(),
+		_nsenter.NsEnterNsEnterCommand())
 	app.Version = fmt.Sprintf("%s/%s", utils.Version, utils.BuildTime)
 	if _ptrace.IsSupported {
 		app.AddCommand(_ptrace.CreatePtraceCommand())
