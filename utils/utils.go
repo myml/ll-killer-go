@@ -642,12 +642,18 @@ func CopyFileIO(src, dst string) error {
 }
 
 func IsSameFile(file1 string, file2 string) (bool, error) {
-	stat1, err := os.Stat(file1)
+	stat1, err := os.Lstat(file1)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
 		return false, err
 	}
-	stat2, err := os.Stat(file2)
+	stat2, err := os.Lstat(file2)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
 		return false, err
 	}
 	sys1 := stat1.Sys().(*syscall.Stat_t)
