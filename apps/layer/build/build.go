@@ -227,6 +227,7 @@ func RunBuildScript(workDir string) {
 
 }
 func BuildLayer() {
+	os.Setenv("KILLER_PICKER", "1")
 	workDir := "linglong/output"
 	log.Println("[准备构建环境]")
 	SetupFilesystem(workDir)
