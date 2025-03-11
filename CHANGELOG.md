@@ -1,4 +1,16 @@
 
+<a name="v1.4.3"></a>
+## [v1.4.3](https://github.com/System233/ll-killer-go/compare/v1.4.2...v1.4.3) (2025-03-11)
+
+### 代码调整
+
+* 调整layer子命令帮助
+
+### 兼容性更改
+
+* 弃用commit/export组合命令，请考虑使用 layer build 子命令来生成layer文件。
+
+
 <a name="v1.4.2"></a>
 ## [v1.4.2](https://github.com/System233/ll-killer-go/compare/v1.4.1...v1.4.2) (2025-03-11)
 
