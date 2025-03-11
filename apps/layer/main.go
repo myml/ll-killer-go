@@ -19,8 +19,8 @@ import (
 func CreateLayerCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "layer",
-		Short: "layer 打包/挂载/解压工具",
-		Long:  "独立于玲珑的layer管理器，提供丰富的layer处理支持，需要安装erofs-utils。",
+		Short: "layer 构建/打包/挂载/调试工具",
+		Long:  "独立于玲珑的layer管理器，提供强大的layer文件处理支持，需要安装erofs-utils。",
 	}
 	cmd.AddCommand(
 		_pack.CreatePackCommand(),

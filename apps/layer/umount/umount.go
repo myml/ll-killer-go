@@ -22,7 +22,7 @@ func UmountMain(cmd *cobra.Command, args []string) error {
 func CreateUmountCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "umount <挂载目录> -- [fusermount选项]",
-		Short: "卸载layer目录。",
+		Short: "卸载layer挂载点。",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			Flag.Target = args[0]
