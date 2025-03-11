@@ -26,15 +26,17 @@ import (
 )
 
 var Flag struct {
-	RootFs     string
-	Target     string
-	ExecPath   string
-	Compressor string
-	BlockSize  int
-	Gid        int
-	Uid        int
-	PackArgs   []string
-	Args       []string
+	RootFs      string
+	Target      string
+	ExecPath    string
+	Compressor  string
+	BlockSize   int
+	Gid         int
+	Uid         int
+	NoPostSetup bool
+	NoLayer     bool
+	PackArgs    []string
+	Args        []string
 }
 
 const BuildCommandDescription = `无需ll-builder, 直接将当前项目构建为layer。
@@ -50,8 +52,12 @@ const BuildCommandDescription = `无需ll-builder, 直接将当前项目构建�
  ## 目录
  /project: 项目目录
  /: 与宿主机相同
+
+ ## 后处理
+ * 为快捷方式和服务单元添加ll-cli run前缀
  `
 const BuildCommandHelp = ``
+const PostSetupScript = "build-aux/post-setup.sh"
 
 var Config types.Config
 var LayerInfo layer.LayerInfo
@@ -224,7 +230,14 @@ func RunBuildScript(workDir string) {
 	if err := cmd.Run(); err != nil {
 		utils.ExitWith(err, "构建失败")
 	}
+}
 
+func RunPostSetup(workDir string) {
+	cmd := utils.NewCommand(PostSetupScript)
+	cmd.Dir = "/project"
+	if err := cmd.Run(); err != nil {
+		utils.ExitWith(err, "后处理失败")
+	}
 }
 func BuildLayer() {
 	os.Setenv("KILLER_PICKER", "1")
@@ -235,8 +248,15 @@ func BuildLayer() {
 	log.Println("[运行构建脚本]")
 	RunBuildScript(workDir)
 
-	log.Println("[打包输出]")
-	PostPackUp(workDir)
+	if !Flag.NoPostSetup {
+		log.Println("[文件后处理]")
+		RunPostSetup(workDir)
+	}
+
+	if !Flag.NoLayer {
+		log.Println("[打包输出]")
+		PostPackUp(workDir)
+	}
 
 }
 func GetBuildArgs() []string {
@@ -244,6 +264,8 @@ func GetBuildArgs() []string {
 		fmt.Sprint("--block-size=", Flag.BlockSize),
 		fmt.Sprint("--force-gid=", Flag.Gid),
 		fmt.Sprint("--force-uid=", Flag.Uid),
+		fmt.Sprint("--no-layer=", Flag.NoLayer),
+		fmt.Sprint("--no-post-setup=", Flag.NoPostSetup),
 	}
 	if Flag.Compressor != "" {
 		args = append(args, "--compressor", Flag.Compressor)
@@ -296,6 +318,8 @@ func CreateBuildCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&Flag.Compressor, "compressor", "z", "lz4hc", "压缩算法，请查看mkfs.erofs帮助")
 	cmd.Flags().IntVarP(&Flag.Uid, "force-uid", "U", os.Getuid(), "文件Uid,-1为不更改")
 	cmd.Flags().IntVarP(&Flag.Gid, "force-gid", "G", os.Getegid(), "文件Gid,-1为不更改")
+	cmd.Flags().BoolVar(&Flag.NoPostSetup, "no-post-setup", false, "不对构建结果进行后处理")
+	cmd.Flags().BoolVar(&Flag.NoLayer, "no-layer", false, "不输出layer文件")
 	cmd.Flags().StringSliceVar(&Flag.PackArgs, "erofs-args", []string{}, "其他mkfs.erofs选项,逗号分隔")
 	cmd.Flags().SortFlags = false
 	return cmd
