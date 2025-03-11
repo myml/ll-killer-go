@@ -9,6 +9,7 @@ package _pack
 import (
 	"ll-killer/layer"
 	"ll-killer/utils"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -31,6 +32,7 @@ const PackCommandHelp = `将文件夹打包为layer,此命令直接使用mkfs.er
 var Flag layer.PackOption
 
 func PackMain(cmd *cobra.Command, args []string) error {
+	utils.Debug("PackMain", args)
 	Flag.Args = args
 	return layer.Pack(&Flag)
 }
@@ -44,17 +46,15 @@ func CreatePackCommand() *cobra.Command {
 		SilenceUsage:  true,
 		Args:          cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			i := 1
 			Flag.Source = args[0]
-			if len(args) > 1 {
-				Flag.Target = args[1]
-				i++
-			}
-			utils.ExitWith(PackMain(cmd, args[i:]))
+			utils.ExitWith(PackMain(cmd, args[1:]))
 		},
 	}
 	cmd.Flags().IntVarP(&Flag.BlockSize, "block-size", "b", 4096, "块大小")
+	cmd.Flags().StringVarP(&Flag.Target, "output", "o", "", "输出文件名")
 	cmd.Flags().StringVar(&Flag.ExecPath, "exec", layer.MkfsErofs, "指定mkfs.erofs命令位置")
+	cmd.Flags().IntVarP(&Flag.Uid, "force-uid", "U", os.Getuid(), "文件Uid,-1为不更改")
+	cmd.Flags().IntVarP(&Flag.Gid, "force-gid", "G", os.Getegid(), "文件Gid,-1为不更改")
 	cmd.Flags().StringVarP(&Flag.Compressor, "compressor", "z", "lz4hc", "压缩算法，请查看mkfs.erofs帮助")
 	return cmd
 }

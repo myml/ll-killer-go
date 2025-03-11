@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"ll-killer/types"
 	"ll-killer/utils"
 	"os"
 	"path"
+	"regexp"
+	"runtime"
 	"strings"
+
+	"golang.org/x/sys/unix"
 )
 
 const LayerMagic = "<<< deepin linglong layer archive >>>\x00\x00\x00"
@@ -21,14 +26,16 @@ const FuserMount = "fusermount"
 type LayerInfo struct {
 	Arch          []string `json:"arch"`
 	Base          string   `json:"base"`
+	Runtime       string   `json:"runtime,omitempty"`
 	Channel       string   `json:"channel"`
+	Command       []string `json:"command"`
 	Description   string   `json:"description"`
 	ID            string   `json:"id"`
 	Kind          string   `json:"kind"`
 	Module        string   `json:"module"`
 	Name          string   `json:"name"`
 	SchemaVersion string   `json:"schema_version"`
-	Size          int      `json:"size"`
+	Size          int64    `json:"size"`
 	Version       string   `json:"version"`
 }
 type LayerInfoHeader struct {
@@ -36,6 +43,150 @@ type LayerInfoHeader struct {
 	Version string    `json:"version"`
 }
 
+func GetTriplet() string {
+	switch runtime.GOARCH {
+	case "amd64":
+		return "x86_64-linux-gnu"
+	case "arm64":
+		return "aarch64-linux-gnu"
+	case "loong64":
+		return "loongarch64-linux-gnu"
+	case "mips64":
+		return "mips64el-linux-gnuabi64"
+	default:
+		return "unknown"
+	}
+}
+func getArch() string {
+	switch runtime.GOARCH {
+	case "amd64":
+		return "x86_64"
+	case "arm64":
+		return "arm64"
+	case "loong64":
+		return "loongarch64"
+	case "sw64":
+		return "sw64"
+	case "mips64":
+		return "mips64"
+	default:
+		return "unknown"
+	}
+}
+func (info *LayerInfo) ParseLayerInfo(config types.Config) error {
+	channel := "main"
+	// 验证package版本格式
+	if len(strings.Split(config.Package.Version, ".")) != 4 {
+		return fmt.Errorf("package.version must be 4-part semver")
+	}
+	if len(config.Command) == 0 {
+		return fmt.Errorf("package.command is empty")
+	}
+
+	// 验证kind类型
+	if kind := config.Package.Kind; kind != "app" && kind != "runtime" {
+		return fmt.Errorf("invalid package.kind: %s", kind)
+	}
+
+	// 处理base字段
+	normalizedBase, err := normalizeComponent(config.Base, channel, getArch())
+	if err != nil {
+		return fmt.Errorf("base format error: %w", err)
+	}
+	info.Base = normalizedBase
+
+	// 处理runtime字段
+	if config.Runtime != "" {
+		normalizedRuntime, err := normalizeComponent(config.Runtime, channel, getArch())
+		if err != nil {
+			return fmt.Errorf("runtime format error: %w", err)
+		}
+		info.Runtime = normalizedRuntime
+	}
+
+	// 填充基础字段
+	info.Arch = []string{getArch()}
+	info.ID = config.Package.ID
+	info.Name = config.Package.Name
+	info.Version = config.Package.Version
+	info.Kind = config.Package.Kind
+	info.Description = config.Package.Description
+	info.SchemaVersion = "1.0"
+	info.Module = "binary"
+	info.Channel = channel
+	info.Command = config.Command
+	return nil
+}
+
+func normalizeComponent(input, defaultChannel, defaultArch string) (string, error) {
+	// 分割channel部分
+	channel := defaultChannel
+	if parts := strings.SplitN(input, ":", 2); len(parts) > 1 {
+		channel = parts[0]
+		input = parts[1]
+	}
+
+	// 解析架构和包信息
+	parts := strings.Split(input, "/")
+	var arch, pkg, version string
+
+	// 检查最后一个元素是否是架构
+	if isValidArch(parts[len(parts)-1]) {
+		arch = parts[len(parts)-1]
+		parts = parts[:len(parts)-1]
+	} else {
+		arch = defaultArch
+	}
+
+	// 验证包名和版本
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid component format: %s", input)
+	}
+	pkg = strings.Join(parts[:len(parts)-1], "/")
+	version = parts[len(parts)-1]
+
+	// 验证版本格式
+	if !isValidVersion(version) {
+		return "", fmt.Errorf("invalid version format: %s", version)
+	}
+
+	return fmt.Sprintf("%s:%s/%s/%s", channel, pkg, version, arch), nil
+}
+
+var validArches = map[string]bool{
+	"x86_64":      true,
+	"arm64":       true,
+	"loongarch64": true,
+	"sw64":        true,
+	"mips64":      true,
+}
+
+func isValidArch(arch string) bool {
+	return validArches[arch]
+}
+
+var versionPartRegex = regexp.MustCompile(`^(0|[1-9]\d*)$`)
+
+func isValidVersion(version string) bool {
+	parts := strings.Split(version, ".")
+	if len(parts) < 2 || len(parts) > 4 {
+		return false
+	}
+	for _, part := range parts {
+		if !versionPartRegex.MatchString(part) {
+			return false
+		}
+	}
+	return true
+}
+
+func NewLayerInfoHeader(config types.Config) LayerInfoHeader {
+	var header LayerInfoHeader
+	header.Version = "1"
+	header.Info.ParseLayerInfo(config)
+	return header
+
+}
 func (l *LayerInfoHeader) Print() {
 	fmt.Println("Layer元数据版本:")
 	fmt.Printf("    版本: %s\n", l.Version)
@@ -54,10 +205,16 @@ func (info *LayerInfo) Print() {
 	fmt.Printf("    模块: %s\n", info.Module)
 	fmt.Printf("    类型: %s\n", info.Kind)
 	fmt.Printf("    基础: %s\n", info.Base)
+	if info.Runtime != "" {
+		fmt.Printf("    运行时: %s\n", info.Runtime)
+	}
 	fmt.Printf("    渠道: %s\n", info.Channel)
+	fmt.Printf("    命令行: %s\n", info.Command)
 	fmt.Printf("    元数据版本: %s\n", info.SchemaVersion)
 	fmt.Printf("    描述: %s\n", info.Description)
-	fmt.Printf("    大小: %d 字节\n", info.Size)
+	if info.Size != 0 {
+		fmt.Printf("    大小: %d 字节\n", info.Size)
+	}
 	fmt.Printf("    架构: %s\n", strings.Join(info.Arch, ", "))
 }
 
@@ -205,6 +362,8 @@ type PackOption struct {
 	ExecPath   string
 	Compressor string
 	BlockSize  int
+	Uid        int
+	Gid        int
 	Args       []string
 }
 
@@ -245,9 +404,14 @@ func Pack(opt *PackOption) error {
 	if err != nil {
 		return err
 	}
-
+	if opt.Uid >= 0 {
+		args = append(args, fmt.Sprint("--force-uid=", opt.Uid))
+	}
+	if opt.Gid >= 0 {
+		args = append(args, fmt.Sprint("--force-gid=", opt.Gid))
+	}
 	args = append(args,
-		fmt.Sprint("--offset=", layer.DataOffset()),
+		// fmt.Sprint("--offset=", layer.DataOffset()), # BUG
 		fmt.Sprint("-b", opt.BlockSize),
 		target,
 		opt.Source)
@@ -257,12 +421,39 @@ func Pack(opt *PackOption) error {
 	}
 
 	header := append([]byte(LayerMagic), append(sizeData, metadata...)...)
-	fp, err := os.OpenFile(target, os.O_WRONLY, 0755)
+	fp, err := os.OpenFile(target, os.O_RDWR, 0755)
 	if err != nil {
 		return err
 	}
 	defer fp.Close()
-	_, err = fp.WriteAt(header, 0)
+
+	fstat, err := fp.Stat()
+	if err != nil {
+		return err
+	}
+	rawSize := fstat.Size()
+	newSize := rawSize + int64(layer.DataOffset())
+	err = fp.Truncate(newSize)
+	if err != nil {
+		return err
+	}
+	mem, err := unix.Mmap(int(fp.Fd()), 0, int(newSize), unix.PROT_READ|unix.PROT_WRITE, unix.MAP_SHARED)
+	if err != nil {
+		return err
+	}
+	defer unix.Munmap(mem)
+	err = unix.Madvise(mem, unix.MADV_SEQUENTIAL)
+	if err != nil {
+		return err
+	}
+	if count := copy(mem[layer.DataOffset():], mem); count != int(rawSize) {
+		return fmt.Errorf("复制错误:%d!=%d", count, rawSize)
+	}
+
+	if count := copy(mem[:layer.DataOffset()], header); count != int(layer.DataOffset()) {
+		return fmt.Errorf("复制错误:%d!=%d", count, layer.DataOffset())
+	}
+	err = unix.Msync(mem, unix.MS_SYNC)
 	if err != nil {
 		return err
 	}

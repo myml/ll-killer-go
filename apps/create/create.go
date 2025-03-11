@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	buildaux "ll-killer/apps/build-aux"
+	"ll-killer/types"
 	"ll-killer/utils"
 	"log"
 	"net/http"
@@ -21,22 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Config struct {
-	Version string `yaml:"version"`
-	Package struct {
-		ID          string `yaml:"id"`
-		Name        string `yaml:"name"`
-		Version     string `yaml:"version"`
-		Kind        string `yaml:"kind"`
-		Description string `yaml:"description"`
-	} `yaml:"package"`
-	Command []string `yaml:"command"`
-	Base    string   `yaml:"base"`
-	Runtime string   `yaml:"runtime,omitempty"`
-	Build   string   `yaml:"build"`
-}
-
-var ConfigData Config
+var ConfigData types.Config
 var CreateFlag struct {
 	NoBuild  bool
 	Force    bool

@@ -7,6 +7,7 @@
 package _layer
 
 import (
+	_build "ll-killer/apps/layer/build"
 	_dump "ll-killer/apps/layer/dump"
 	_mount "ll-killer/apps/layer/mount"
 	_pack "ll-killer/apps/layer/pack"
@@ -23,6 +24,7 @@ func CreateLayerCommand() *cobra.Command {
 	}
 	cmd.AddCommand(
 		_pack.CreatePackCommand(),
+		_build.CreateBuildCommand(),
 		_mount.CreateMountCommand(),
 		_umount.CreateUmountCommand(),
 		_dump.CreateDumpCommand())

@@ -199,8 +199,8 @@ func SwitchTo(next string, flags *SwitchFlags) error {
 	return cmd.Run()
 }
 
-func RunCommand(name string, args ...string) error {
-	Debug("RunCommand", name, args)
+func NewCommand(name string, args ...string) *exec.Cmd {
+	Debug("NewCommand", name, args)
 	cmd := exec.Command(name, args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Pdeathsig: syscall.SIGTERM,
@@ -209,6 +209,11 @@ func RunCommand(name string, args ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	return cmd
+}
+func RunCommand(name string, args ...string) error {
+	Debug("RunCommand", name, args)
+	cmd := NewCommand(name, args...)
 	return cmd.Run()
 }
 
@@ -660,4 +665,10 @@ func IsSameFile(file1 string, file2 string) (bool, error) {
 	sys2 := stat2.Sys().(*syscall.Stat_t)
 
 	return sys1.Ino == sys2.Ino && sys1.Dev == sys2.Dev, nil
+}
+
+func Must(err error, v ...any) {
+	if err != nil {
+		ExitWith(err, v...)
+	}
 }
