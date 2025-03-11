@@ -1,4 +1,20 @@
 
+<a name="v1.4.0"></a>
+## [v1.4.0](https://github.com/System233/ll-killer-go/compare/v1.3.1...v1.4.0) (2025-03-11)
+
+### 新增功能
+
+* 添加layer build子命令，无需ll-builder即可构建并输出layer
+
+
+<a name="v1.3.1"></a>
+## [v1.3.1](https://github.com/System233/ll-killer-go/compare/v1.3.0...v1.3.1) (2025-03-10)
+
+### 错误修复
+
+* 修复build-aux子命令创建文件
+
+
 <a name="v1.3.0"></a>
 ## [v1.3.0](https://github.com/System233/ll-killer-go/compare/v1.2.1...v1.3.0) (2025-03-10)
 
