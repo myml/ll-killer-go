@@ -1,4 +1,28 @@
 
+<a name="v1.4.2"></a>
+## [v1.4.2](https://github.com/System233/ll-killer-go/compare/v1.4.1...v1.4.2) (2025-03-11)
+
+### 错误修复
+
+* killer打包环境变量名更正为KILLER_PACKER
+
+
+<a name="v1.4.1"></a>
+## [v1.4.1](https://github.com/System233/ll-killer-go/compare/v1.4.0...v1.4.1) (2025-03-11)
+
+### 新增功能
+
+* 为layer build子命令添加后处理支持
+
+### 构建系统
+
+* 更新make依赖
+
+### 错误修复
+
+* 使用KILLER_PICKER标识killer layer build环境
+
+
 <a name="v1.4.0"></a>
 ## [v1.4.0](https://github.com/System233/ll-killer-go/compare/v1.3.1...v1.4.0) (2025-03-11)
 
