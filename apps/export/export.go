@@ -29,6 +29,7 @@ func CreateExportCommand() *cobra.Command {
 		Use:                "export",
 		Short:              "导出应用",
 		Long:               "此命令执行ll-builder export，用于提供一致性体验。",
+		Deprecated:         utils.BuildHelpMessage("请考虑使用 <program> layer build 命令来生成layer文件。"),
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			utils.ExitWith(ExportMain(cmd, args))

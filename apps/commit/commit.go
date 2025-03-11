@@ -28,12 +28,12 @@ func CreateCommitCommand() *cobra.Command {
 		Use:                "commit",
 		Short:              "提交构建内容",
 		Long:               "此命令执行ll-builder build，用于提供一致性体验。",
+		Deprecated:         utils.BuildHelpMessage("请考虑使用 <program> layer build 命令来生成layer文件。"),
 		DisableFlagParsing: true,
 		Run: func(cmd *cobra.Command, args []string) {
 			utils.ExitWith(CommitMain(cmd, args))
 		},
 	}
 
-	// 由于原命令没有标志，这里不添加 Flags
 	return cmd
 }
