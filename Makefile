@@ -15,7 +15,7 @@ FUSE_PROJECT_SRC=Makefile *.c *h
 FUSE_PROJECT := $(foreach file, $(FUSE_PROJECT_DEPS), $(FUSE_DIR)/$(file))
 FUSE_SRCS := $(foreach file, $(FUSE_PROJECT_SRC), $(FUSE_DIR)/$(file))
 
-SRC_DIRS := apps layer pty utils
+SRC_DIRS := apps layer pty utils types
 GO_SOURCES:= $(wildcard *.go) $(shell find $(SRC_DIRS) -name '*.go')
 GO_BUILD := $(GO) build $(TRIMPATH) $(GO_BUILDMODE_STATIC) \
 	$(EXTRA_FLAGS) -ldflags "$(LDFLAGS) $(LDFLAGS_STATIC) $(EXTRA_LDFLAGS)"
