@@ -10,19 +10,22 @@ cp -avf "$KILLER_EXEC" "$PREFIX/ll-killer"
 cp -avf "build-aux/$ENTRYPOINT_NAME" "$PREFIX"
 
 echo "[调整文件布局]"
-if [ -e "$PREFIX/share" ];then
+if [ -e "$PREFIX/share" ]; then
+    mkdir -pv "$PREFIX/usr"
     cp -arfT "$PREFIX/share" "$PREFIX/usr/share"
     rm -rf "$PREFIX/share"
 fi
-mv "$PREFIX/usr/share" "$PREFIX/share"
-mkdir -p "$PREFIX/usr/share"
+test -d "$PREFIX/usr/share" && mv -vf "$PREFIX/usr/share" "$PREFIX/share"
+mkdir -pv "$PREFIX/usr/share"
 
-echo "[合并share目录]"
-find "$PREFIX/opt/apps/" -type d \( -path "$PREFIX/opt/apps/*/entries" \
-    -or -path "$PREFIX/opt/apps/*/files/share" \) \
-    -exec "merge-share.sh" "{}" \;
+if [ -d "$PREFIX/opt/apps/" ]; then
+    echo "[合并share目录]"
+    find "$PREFIX/opt/apps/" -type d \( -path "$PREFIX/opt/apps/*/entries" \
+        -or -path "$PREFIX/opt/apps/*/files/share" \) \
+        -exec "merge-share.sh" "{}" \;
+fi
 
-if [ "${KILLER_PACKER:-0}" == "0" ];then
+if [ "${KILLER_PACKER:-0}" == "0" ]; then
     echo "[修正符号链接]"
     echo "详细信息: https://github.com/OpenAtom-Linyaps/linyaps/issues/1039"
     find $PREFIX/share -xtype l -exec "relink.sh" "{}" \;
