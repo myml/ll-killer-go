@@ -25,6 +25,7 @@ import (
 const (
 	KillerExec        = "ll-killer"
 	KillerExecEnv     = "KILLER_EXEC"
+	KillerPackerEnv   = "KILLER_PACKER"
 	FileSystemDir     = "linglong/filesystem"
 	UpperDirName      = "diff"
 	LowerDirName      = "overwrite"
@@ -82,88 +83,6 @@ func CreateCommand(name string) *exec.Cmd {
 	return cmd
 }
 
-/*
-1000->0->1000 500:500:1000
-
-1000->0
-1000:0:1
-500:100000+500:500
-1001:100000+1001:499
-
-0->1000
-0:1000:1
-100000+500:500:500
-100000+1001:1001:499
-
-另一个映射版本：
-1000:1000:1
-1001:100000:65535
-
-1000->0
-0:1000:1
-1:100000:
-
-
-*/
-
-// mergeMappings 合并映射表中相邻连续的映射项
-// func mergeMappings(mappings []syscall.SysProcIDMap) []syscall.SysProcIDMap {
-// 	sort.Slice(mappings, func(i, j int) bool {
-// 		return mappings[i].HostID < mappings[j].HostID
-// 	})
-// 	if len(mappings) == 0 {
-// 		return mappings
-// 	}
-
-// 	merged := []syscall.SysProcIDMap{mappings[0]}
-// 	for i := 1; i < len(mappings); i++ {
-// 		last := &merged[len(merged)-1]
-// 		current := mappings[i]
-// 		if last.HostID+last.Size == current.HostID &&
-// 			last.ContainerID+last.Size == current.ContainerID {
-// 			last.Size += current.Size
-// 		} else {
-// 			merged = append(merged, current)
-// 		}
-// 	}
-// 	return merged
-// }
-// func SplitMapping(from int, to int, mappings []syscall.SysProcIDMap) []syscall.SysProcIDMap {
-// 	var newMappings []syscall.SysProcIDMap
-// 	for _, item := range mappings {
-// 		if item.HostID <= from && from < item.HostID+item.Size {
-// 			if item.HostID == from && item.ContainerID == to {
-// 				newMappings = append(newMappings, item)
-// 			} else {
-// 				newMappings = append(newMappings, syscall.SysProcIDMap{
-// 					HostID:      from,
-// 					ContainerID: to,
-// 					Size:        1,
-// 				})
-// 				if item.HostID < from {
-// 					newMappings = append(newMappings, syscall.SysProcIDMap{
-// 						HostID:      item.HostID,
-// 						ContainerID: item.ContainerID,
-// 						Size:        from - item.HostID,
-// 					})
-// 				}
-// 				if item.HostID+item.Size-1 > from {
-// 					diff := from - item.HostID
-// 					newMappings = append(newMappings, syscall.SysProcIDMap{
-// 						HostID:      item.HostID + diff + 1,
-// 						ContainerID: item.ContainerID + diff + 1,
-// 						Size:        item.HostID + item.Size - from - 1,
-// 					})
-// 				}
-// 			}
-// 		} else {
-// 			newMappings = append(newMappings, item)
-// 		}
-// 	}
-
-// 	return mergeMappings(newMappings)
-
-// }
 func SwitchTo(next string, flags *SwitchFlags) error {
 	cmd := CreateCommand(next)
 	if flags.NoDefaultArgs {

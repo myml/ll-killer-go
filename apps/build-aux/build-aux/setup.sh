@@ -22,7 +22,7 @@ find "$PREFIX/opt/apps/" -type d \( -path "$PREFIX/opt/apps/*/entries" \
     -or -path "$PREFIX/opt/apps/*/files/share" \) \
     -exec "merge-share.sh" "{}" \;
 
-if [ -z "$KILLER_PICKER" ];then
+if [ "${KILLER_PACKER:-0}" == "0" ];then
     echo "[修正符号链接]"
     echo "详细信息: https://github.com/OpenAtom-Linyaps/linyaps/issues/1039"
     find $PREFIX/share -xtype l -exec "relink.sh" "{}" \;

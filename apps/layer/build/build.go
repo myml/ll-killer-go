@@ -48,13 +48,17 @@ const BuildCommandDescription = `无需ll-builder, 直接将当前项目构建�
  LINGLONG_APPID="{APPID}"
  PREFIX="/opt/apps/{APPID}/files"
  TRIPLET="x86_64-linux-gnu|aarch64-linux-gnu|loongarch64-linux-gnu|..." 
- 
+ KILLER_PACKER=1
+
  ## 目录
  /project: 项目目录
  /: 与宿主机相同
 
  ## 后处理
  * 为快捷方式和服务单元添加ll-cli run前缀
+
+ * KILLER_PACKER 标识当前处于killer环境，killer环境下setup.sh会自动跳过符号链接修复，
+   可以在启动前设置KILLER_PACKER=0禁用该行为。
  `
 const BuildCommandHelp = ``
 const PostSetupScript = "build-aux/post-setup.sh"
@@ -240,7 +244,10 @@ func RunPostSetup(workDir string) {
 	}
 }
 func BuildLayer() {
-	os.Setenv("KILLER_PICKER", "1")
+	killerPackerEnv := os.Getenv(utils.KillerPackerEnv)
+	if killerPackerEnv == "" {
+		os.Setenv(utils.KillerPackerEnv, "1")
+	}
 	workDir := "linglong/output"
 	log.Println("[准备构建环境]")
 	SetupFilesystem(workDir)
